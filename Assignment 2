@@ -1,10 +1,10 @@
 # Converting Ensembl IDs to Hugo Gene Names
--------------------------------------------
-This should all be done in an R Script File.
-First, create a folder called "data" in home files.
-Second, create a folder called "results" in home files.
-Third, make sure folder with data is also in home files named appropriately.
-Fourth, run the following commands in RStudio Script.
+#-------------------------------------------
+#This should all be done in an R Script File.
+#First, create a folder called "data" in home files.
+#Second, create a folder called "results" in home files.
+#Third, make sure folder with data is also in home files named appropriately.
+#Fourth, run the following commands in RStudio Script.
 
 
 # Install the Zebrafish package
@@ -142,13 +142,13 @@ ddset <- DESeqDataSetFromMatrix(
   # Supply the `colData` with our metadata data frame
   colData = metadata,
   # Supply our experimental variable to `design`
-  design = ~mutation_status
+  design = ~ mutation_status
 )
 
 vsd <- vst(ddset, blind = FALSE)
 
 # Create the PCA plot
-pca_plot <- plotPCA(vsd, intgroup = "condition") + ggtitle("PCA Plot of VST Expression Data")
+pca_plot <- plotPCA(vsd, intgroup = "mutation_status") + ggtitle("PCA Plot of VST Expression Data")
 pca_plot
 
 # TSNE Plot
