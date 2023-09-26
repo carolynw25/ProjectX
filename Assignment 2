@@ -152,6 +152,9 @@ pca_plot <- plotPCA(vsd, intgroup = "mutation_status") + ggtitle("PCA Plot of Ex
 pca_plot
 
 # TSNE Plot
+install.packages("M3C")
+library(M3C)
+tsne(count_hugo[,0:191],perplex = 10, labels = metadata$mutation_status, text = FALSE)
 # load your omic data here as mydata
 BiocManager::install("M3C")
 library(M3C)
