@@ -1,0 +1,156 @@
+data_dir <- file.path("data", "ERP109789")
+
+results_dir<-file.path("results")
+
+data_file <- file.path(data_dir, "ERP109789.tsv")
+
+metadata_file <- file.path(data_dir, "metadata_ERP109789.tsv")
+
+file.exists(data_file)
+
+file.exists(metadata_file)
+
+metadata <- readr::read_tsv(metadata_file)
+
+expression_df <- readr::read_tsv(data_file) %>%
+  # Tuck away the Gene ID column as row names
+  tibble::column_to_rownames("Gene")
+
+expression_df <- expression_df %>%
+  dplyr::select(metadata$refinebio_accession_code)
+
+all.equal(colnames(expression_df), metadata$refinebio_accession_code)
+
+expression_df <- expression_df %>%
+  tibble::rownames_to_column("Gene")
+
+count_hugo <- mapIds(
+  org.Hs.eg.db, # Replace with annotation package for your organism
+  keys = expression_df$Gene,
+  keytype = "ENSEMBL", # Replace with the type of gene identifiers in your data
+  column = "SYMBOL", # The type of gene identifiers you would like to map to
+  multiVals = "first"
+)
+
+head(count_hugo)
+
+
+# Question 1
+
+# Moved from Earlier
+# Read in data TSV file & Make the data in the order of the metadata
+expression_df <- readr::read_tsv(data_file) %>%
+  tibble::column_to_rownames("Gene") %>% dplyr::select(metadata$refinebio_accession_code)
+
+# Check if this is in the same order
+all.equal(colnames(expression_df), metadata$refinebio_accession_code)
+
+head(metadata$refinebio_title)
+
+# Simplify Condition to be Treated vs Reference instead of multiple treatments
+metadata <- metadata %>%
+  dplyr::mutate(mutation_status = dplyr::case_when(
+    stringr::str_detect(stimulus, "brain-derived neurotrophic factor") ~ "treated",
+    stringr::str_detect(stimulus, "TrkB agonist antibody ZEB85") ~ "treated",
+    stringr::str_detect(stimulus, "neurotrophin-4") ~ "treated",
+    stringr::str_detect(stimulus, "none") ~ "reference"
+  ))
+
+# Filter rows with less than 10 counts total in all samples
+filtered_expression_df <- expression_df %>%
+  dplyr::filter(rowSums(.) >= 10)
+
+gene_matrix <- round(filtered_expression_df)
+
+metadata <- metadata %>%
+  dplyr::mutate(
+    # Here we define the values our factor variable can have and their order.
+    mutation_status = factor(mutation_status, levels = c("reference", "treated"))
+  )
+
+# Make rowname column temporarily to do HUGO conversion
+temp <- tibble::rownames_to_column(gene_matrix, var = "Gene")
+
+
+# Change to HUGO names
+count_hugo <- data.frame("HUGO" = mapIds(
+  org.Hs.eg.db, # Replace with annotation package for your organism
+  keys = temp$Gene,
+  keytype = "ENSEMBL", # Replace with the type of gene identifiers in your data
+  column = "SYMBOL", # The type of gene identifiers you would like to map to
+  multiVals = "first"
+),temp)
+
+# Remove Duplicates
+count_hugo <- count_hugo[!duplicated(count_hugo$HUGO),]
+
+# Remove extra columns and make HUGO genes new rownames
+count_hugo <- dplyr::select(count_hugo, -Gene)
+count_hugo <- tibble::remove_rownames(count_hugo)
+#removes N/A points
+count_hugo <- na.omit(count_hugo)
+#Makes rownames the HUGO names
+count_hugo <- tibble::column_to_rownames(count_hugo,var = "HUGO")
+
+
+# Counts File after all of the preprocessing (use for TSNE, Density Plot, Heatmap, and Differential Expression)
+# write.csv(count_hugo, file="counts.csv")
+
+
+# Load the data
+data <- read.table(data_file, header = TRUE, sep = "\t")
+# Log-scale the data (assuming gene expression values start from column 2)
+log_counts <- log(count_hugo, base = 2)
+# Calculate per-gene median expression ranges
+gene_median_ranges <- apply(log_counts, 2, function(x) diff(range(x)))
+# Create a density plot of per-gene median expression ranges
+density_plot <- density(gene_median_ranges)
+plot(density_plot, main = "Density Plot of Per-Gene Median Expression Ranges")
+
+# Question 2
+# Install DESeq2
+BiocManager::install("DESeq2")
+library(DESeq2)
+library("ggplot2")
+
+# DESeq
+ddset <- DESeqDataSetFromMatrix(
+  # Here we supply non-normalized count data
+  countData = count_hugo,
+  # Supply the `colData` with our metadata data frame
+  colData = metadata,
+  # Supply our experimental variable to `design`
+  design = ~mutation_status
+)
+
+vsd <- vst(ddset, blind = FALSE)
+
+# Create the PCA plot
+pca_plot <- plotPCA(vsd, intgroup = "condition") + ggtitle("PCA Plot of VST Expression Data")
+pca_plot
+
+# TSNE Plot
+# load your omic data here as mydata
+BiocManager::install("M3C")
+library(M3C)
+tsne_result <- tsne(expression_df, labels = as.factor(expression_df$Gene))
+
+# DESeq Continued
+
+deseq_object <- DESeq(ddset)
+
+deseq_results <- results(deseq_object)
+
+deseq_results <- lfcShrink(
+  deseq_object, # The original DESeq2 object after running DESeq()
+  coef = 2, # The log fold change coefficient used in DESeq(); the default is 2.
+  res = deseq_results # The original DESeq2 results table
+)
+
+# Get results into data_frame, filter only genes that have p-value of 0.05 or less
+
+# ComplexHeatmap of only genes in this filter
+  # Use HeatmapAnnotation to make the annotations
+
+# Gene Ontology
+
