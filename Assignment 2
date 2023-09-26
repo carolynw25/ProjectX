@@ -148,7 +148,7 @@ ddset <- DESeqDataSetFromMatrix(
 vsd <- vst(ddset, blind = FALSE)
 
 # Create the PCA plot
-pca_plot <- plotPCA(vsd, intgroup = "mutation_status") + ggtitle("PCA Plot of VST Expression Data")
+pca_plot <- plotPCA(vsd, intgroup = "mutation_status") + ggtitle("PCA Plot of Expression Data")
 pca_plot
 
 # TSNE Plot
