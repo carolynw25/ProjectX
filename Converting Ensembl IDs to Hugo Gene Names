@@ -4,7 +4,7 @@ Second, Create a folder called "results" in files
 Third, run the following commands in RStudio Script
 
 # Install the Zebrafish package
-if (!("org.Hr.eg.db" %in% installed.packages())) {
+if (!("org.Hs.eg.db" %in% installed.packages())) {
   # Install this package if it isn't installed yet
   BiocManager::install("org.Hs.eg.db", update = FALSE)
 }
