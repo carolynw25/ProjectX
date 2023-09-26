@@ -1,7 +1,11 @@
+# Converting Ensembl IDs to Hugo Gene Names
+-------------------------------------------
 This should all be done in an R Script File.
-First, Create a folder called "data" in files
-Second, Create a folder called "results" in files
-Third, run the following commands in RStudio Script
+First, create a folder called "data" in home files.
+Second, create a folder called "results" in home files.
+Third, make sure folder with data is also in home files named appropriately.
+Fourth, run the following commands in RStudio Script.
+
 
 # Install the Zebrafish package
 if (!("org.Hs.eg.db" %in% installed.packages())) {
@@ -72,3 +76,17 @@ readr::write_tsv(expression_df, file.path(
   "ERP109789.tsv" # Replace with a relevant output file name
 ))
 
+# Question 1
+-------------------------------------------
+# Load the data
+data <- read.table(data_file, header = TRUE, sep = "\t")
+# Log-scale the data (assuming gene expression values start from column 2)
+data[, 2:ncol(data)] <- log(data[, 2:ncol(data)])
+# Calculate per-gene median expression ranges
+gene_median_ranges <- apply(data[, 2:ncol(data)], 2, function(x) diff(range(x)))
+# Create a density plot of per-gene median expression ranges
+density_plot <- density(gene_median_ranges)
+plot(density_plot, main = "Density Plot of Per-Gene Median Expression Ranges")
+
+# Question 2
+-------------------------------------------
