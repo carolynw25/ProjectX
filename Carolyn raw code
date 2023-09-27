@@ -183,31 +183,70 @@ expression_subset <- count_hugo[rownames(count_hugo) %in% significant_degs$Gene,
 # Log-transform the data (if not already log-transformed)
 expression_subset_log <- log2(expression_subset + 1)  # Adding 1 to avoid log(0)
 
+annot = HeatmapAnnotation(
+  df = data.frame(Group = metadata$mutation_status),
+  col = list(Group = c("reference" = "red", "treated" = "blue")),
+  show_legend = TRUE
+)
+
+expression_matrix <- as.matrix(expression_subset_log)
+
+column_name_font_size <- 1
+
 # Create Heapmap
+Heatmap(
+  expression_matrix,
+  name = "Log2 FC",
+  col = colorRamp2(c(-5, 0, 5), colors = c("blue", "white", "red")),  # Color scheme
+  cluster_rows = TRUE,  # Cluster rows
+  cluster_columns = TRUE,  # Cluster columns
+  column_title = "Samples",
+  row_title = "Genes",
+  column_title_side = "top",
+  show_row_names = FALSE,  # Hide row names
+  show_column_names = TRUE,
+  heatmap_legend_param = list(title = "Expression"),
+  top_annotation = annot,
+  column_names_gp = gpar(fontsize = column_name_font_size) 
+)
 
 
 
-# Gene Ontology - GENOMIC SUPER SIGNATURE
+# Gene Ontology - GENOMIC SUPER SIGNATURE - WORK IN PROGRESS
 
 #Genomic Super Signature
 if (!require("BiocManager", quietly = TRUE))
   install.packages("BiocManager")
 
 BiocManager::install("GenomicSuperSignature")
+BiocManager::install("org.Hs.eg.db")
 library(GenomicSuperSignature)
+library(org.Hs.eg.db)
+
+gene_set_collection <- geneIds(org.Hs.egGO)
+gene_set_annotation <- "org.Hs.eg.db"
 
 # Perform gene set enrichment analysis (GSEA)
 result <- gsea(
   data = diffex_genes$Gene,
   geneSetCollection = org.Hs.eg.db,  # Replace with your gene sets
-  annotation = "ENSEMBL",  # Specify the annotation type (e.g., "entrez")
+  annotation = "ensembl",  # Specify the annotation type (e.g., "entrez")
   geneIds = metadata$mutation_status,  # Provide the DEGs' gene identifiers
   nPerm = 1000,  # Number of permutations for significance testing
   verbose = TRUE  # Show progress
 )
 gseapontology <- result@result
+p_values <- result$pvalues
 
-
+results_dir <- file.path("results")  # Change to your desired directory
+enrichment_file <- file.path(results_dir, "gseapontology_enrichment.tsv")
+write.table(
+  gseapontology,
+  file = enrichment_file,
+  sep = "\t",
+  quote = FALSE,
+  row.names = FALSE
+)
 
 # Gene Ontology - GPROFILER2
 
