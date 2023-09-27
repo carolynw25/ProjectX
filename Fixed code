@@ -1,3 +1,14 @@
+if (!("org.Hs.eg.db" %in% installed.packages())) {
+  # Install this package if it isn't installed yet
+  BiocManager::install("org.Hs.eg.db", update = FALSE)
+}
+
+# Attach the library
+library(org.Hs.eg.db)
+
+# We will need this so we can use the pipe: %>%
+library(magrittr)
+
 data_dir <- file.path("data", "ERP109789")
 
 results_dir<-file.path("results")
@@ -85,7 +96,7 @@ count_hugo <- data.frame("HUGO" = mapIds(
 count_hugo <- count_hugo[!duplicated(count_hugo$HUGO),]
 
 # Remove extra columns and make HUGO genes new rownames
-count_hugo <- dplyr::select(count_hugo, -HUGO)
+count_hugo <- dplyr::select(count_hugo, -Gene)
 count_hugo <- tibble::remove_rownames(count_hugo)
 #removes N/A points
 count_hugo <- na.omit(count_hugo)
@@ -136,9 +147,9 @@ tsne(count_hugo[,0:191],perplex = 10, labels = metadata$mutation_status, text = 
 
 
 # load your omic data here as mydata
-BiocManager::install("M3C")
-library(M3C)
-tsne_result <- tsne(expression_df, labels = as.factor(expression_df$Gene))
+#BiocManager::install("M3C")
+#library(M3C)
+#tsne_result <- tsne(expression_df, labels = as.factor(expression_df$Gene))
 
 # DESeq Continued
 
@@ -146,11 +157,11 @@ deseq_object <- DESeq(ddset)
 
 deseq_results <- results(deseq_object)
 
-deseq_results <- lfcShrink(
-  deseq_object, # The original DESeq2 object after running DESeq()
-  coef = 2, # The log fold change coefficient used in DESeq(); the default is 2.
-  res = deseq_results # The original DESeq2 results table
-)
+#deseq_results <- lfcShrink(
+#  deseq_object, # The original DESeq2 object after running DESeq()
+#  coef = 2, # The log fold change coefficient used in DESeq(); the default is 2.
+#  res = deseq_results # The original DESeq2 results table
+#)
 
 # Get results into data_frame, filter only genes that have p-value of 0.05 or less
 
@@ -172,23 +183,7 @@ expression_subset <- count_hugo[rownames(count_hugo) %in% significant_degs$Gene,
 # Log-transform the data (if not already log-transformed)
 expression_subset_log <- log2(expression_subset + 1)  # Adding 1 to avoid log(0)
 
-Heatmap(
-  expression_subset_log,
-  name = "Log2 FC",
-  col = colorRamp2(c(-2, 0, 2), colors = c("blue", "white", "red")),  # Color scheme
-  cluster_rows = FALSE,  # Do not cluster rows
-  cluster_columns = FALSE,  # Do not cluster columns
-  column_title = "Samples",
-  row_title = "Genes",
-  column_title_side = "top",
-  show_row_names = FALSE,  # Hide row names
-  heatmap_legend_param = list(title = "Expression"),
-  top_annotation = HeatmapAnnotation(
-    df = data.frame(Group = sample_groups),
-    col = list(Group = c("reference" = "red", "treatedc" = "blue")),
-    show_legend = TRUE
-  )
-)
+# Create Heapmap
 
 
 
