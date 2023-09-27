@@ -141,7 +141,7 @@ pca_plot <- plotPCA(vsd, intgroup = "mutation_status") + ggtitle("PCA Plot of Ex
 pca_plot
 
 # TSNE Plot
-install.packages("M3C")
+BiocManager::install("M3C”)
 library(M3C)
 tsne(count_hugo[,0:191],perplex = 10, labels = metadata$mutation_status, text = FALSE)
 
@@ -187,7 +187,7 @@ expression_subset_log <- log2(expression_subset + 1)  # Adding 1 to avoid log(0)
 
 
 
-# Gene Ontology
+# Gene Ontology - GENOMIC SUPER SIGNATURE
 
 #Genomic Super Signature
 if (!require("BiocManager", quietly = TRUE))
@@ -205,3 +205,17 @@ result <- gsea(
   nPerm = 1000,  # Number of permutations for significance testing
   verbose = TRUE  # Show progress
 )
+
+# Gene Ontology - GPROFILER2
+
+BiocManager::install("gprofiler2")
+library(gprofiler2)
+
+gostres <- gost(query = diffex_genes$Gene, 
+                organism = "hsapiens", ordered_query = FALSE, 
+                multi_query = FALSE, significant = TRUE, exclude_iea = FALSE, 
+                measure_underrepresentation = TRUE, evcodes = FALSE, 
+                user_threshold = 0.05, correction_method = "g_SCS", 
+                domain_scope = "annotated", custom_bg = NULL, 
+                numeric_ns = "", sources = NULL, as_short_link = FALSE, highlight = TRUE)
+gpontology <- gostres$result
