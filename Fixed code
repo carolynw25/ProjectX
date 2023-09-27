@@ -85,7 +85,7 @@ count_hugo <- data.frame("HUGO" = mapIds(
 count_hugo <- count_hugo[!duplicated(count_hugo$HUGO),]
 
 # Remove extra columns and make HUGO genes new rownames
-count_hugo <- dplyr::select(count_hugo, -Gene)
+count_hugo <- dplyr::select(count_hugo, -HUGO)
 count_hugo <- tibble::remove_rownames(count_hugo)
 #removes N/A points
 count_hugo <- na.omit(count_hugo)
@@ -120,16 +120,21 @@ ddset <- DESeqDataSetFromMatrix(
   # Supply the `colData` with our metadata data frame
   colData = metadata,
   # Supply our experimental variable to `design`
-  design = ~mutation_status
+  design = ~ mutation_status
 )
 
 vsd <- vst(ddset, blind = FALSE)
 
 # Create the PCA plot
-pca_plot <- plotPCA(vsd, intgroup = "condition") + ggtitle("PCA Plot of VST Expression Data")
+pca_plot <- plotPCA(vsd, intgroup = "mutation_status") + ggtitle("PCA Plot of Expression Data")
 pca_plot
 
 # TSNE Plot
+install.packages("M3C")
+library(M3C)
+tsne(count_hugo[,0:191],perplex = 10, labels = metadata$mutation_status, text = FALSE)
+
+
 # load your omic data here as mydata
 BiocManager::install("M3C")
 library(M3C)
@@ -151,6 +156,57 @@ deseq_results <- lfcShrink(
 
 # ComplexHeatmap of only genes in this filter
   # Use HeatmapAnnotation to make the annotations
+library(ComplexHeatmap)
+library(circlize)
+install.packages("devtools")
+library(devtools)
+install_github("jokergoo/ComplexHeatmap")
+
+expressed_path <- file.path("results", "diff_expressed_genes.tsv")
+diffex_genes <- readr::read_tsv(expressed_path)
+significant_degs <- diffex_genes[diffex_genes$pvalue < 0.05 & abs(diffex_genes$log2FoldChange) > 2, ]
+
+# Subset the expression data to include only the significant DEGs
+expression_subset <- count_hugo[rownames(count_hugo) %in% significant_degs$Gene, ]
+
+# Log-transform the data (if not already log-transformed)
+expression_subset_log <- log2(expression_subset + 1)  # Adding 1 to avoid log(0)
+
+Heatmap(
+  expression_subset_log,
+  name = "Log2 FC",
+  col = colorRamp2(c(-2, 0, 2), colors = c("blue", "white", "red")),  # Color scheme
+  cluster_rows = FALSE,  # Do not cluster rows
+  cluster_columns = FALSE,  # Do not cluster columns
+  column_title = "Samples",
+  row_title = "Genes",
+  column_title_side = "top",
+  show_row_names = FALSE,  # Hide row names
+  heatmap_legend_param = list(title = "Expression"),
+  top_annotation = HeatmapAnnotation(
+    df = data.frame(Group = sample_groups),
+    col = list(Group = c("reference" = "red", "treatedc" = "blue")),
+    show_legend = TRUE
+  )
+)
+
+
 
 # Gene Ontology
 
+#Genomic Super Signature
+if (!require("BiocManager", quietly = TRUE))
+  install.packages("BiocManager")
+
+BiocManager::install("GenomicSuperSignature")
+library(GenomicSuperSignature)
+
+# Perform gene set enrichment analysis (GSEA)
+result <- gsea(
+  data = expression_data,
+  geneSetCollection = your_gene_sets,  # Replace with your gene sets
+  annotation = "entrez",  # Specify the annotation type (e.g., "entrez")
+  geneIds = DEGs$GeneID,  # Provide the DEGs' gene identifiers
+  nPerm = 1000,  # Number of permutations for significance testing
+  verbose = TRUE  # Show progress
+)
