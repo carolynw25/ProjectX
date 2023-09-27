@@ -251,6 +251,10 @@ deseq_results <- lfcShrink(
   res = deseq_results # The original DESeq2 results table
 )
 
+if (!requireNamespace("BiocManager", quietly = TRUE))
+    install.packages("BiocManager")
+BiocManager::install("apeglm")
+
 head(deseq_results)
 
 # this is of class DESeqResults -- we want a data frame
