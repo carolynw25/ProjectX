@@ -119,6 +119,7 @@ density_plot <- density(gene_median_ranges)
 plot(density_plot, main = "Density Plot of Per-Gene Median Expression Ranges")
 
 # Question 2
+
 # Install DESeq2
 BiocManager::install("DESeq2")
 library(DESeq2)
@@ -151,7 +152,8 @@ tsne(count_hugo[,0:191],perplex = 10, labels = metadata$mutation_status, text = 
 #library(M3C)
 #tsne_result <- tsne(expression_df, labels = as.factor(expression_df$Gene))
 
-# DESeq Continued
+# Question 3
+# (DESeq Continued from Question 2)
 
 deseq_object <- DESeq(ddset)
 
@@ -163,7 +165,42 @@ deseq_results <- results(deseq_object)
 #  res = deseq_results # The original DESeq2 results table
 #)
 
-# Get results into data_frame, filter only genes that have p-value of 0.05 or less
+# make into data.frame
+diffex_genes <- deseq_results %>%
+  as.data.frame() %>%
+  # the gene names are row names -- let's make them a column for easy display
+  tibble::rownames_to_column("Gene") %>%
+  # add a column for significance threshold results
+  dplyr::mutate(threshold = padj < 0.05) %>%
+  # sort by statistic -- the highest values will be genes with
+  # higher expression in RPL10 mutated samples
+  dplyr::arrange(dplyr::desc(log2FoldChange))
+
+# create a volcano plot
+volcano_plot <- EnhancedVolcano::EnhancedVolcano(
+  diffex_genes,
+  lab = diffex_genes$Gene,
+  x = "log2FoldChange",
+  y = "padj",
+  pCutoff = 0.01 # Loosen the cutoff since we supplied corrected p-values
+)
+
+volcano_plot
+
+# readr::write_tsv(
+#   deseq_df,
+#   file.path(
+#     results_dir,
+#     "diff_expressed_genes.tsv"
+#   )
+# )
+
+# ggsave(
+#   plot = volcano_plot,
+#   file.path(plots_dir, "volcano_plot.png")
+# )
+
+# Question 4
 
 # ComplexHeatmap of only genes in this filter
   # Use HeatmapAnnotation to make the annotations
@@ -173,8 +210,6 @@ install.packages("devtools")
 library(devtools)
 install_github("jokergoo/ComplexHeatmap")
 
-expressed_path <- file.path("results", "diff_expressed_genes.tsv")
-diffex_genes <- readr::read_tsv(expressed_path)
 significant_degs <- diffex_genes[diffex_genes$pvalue < 0.05 & abs(diffex_genes$log2FoldChange) > 2, ]
 
 # Subset the expression data to include only the significant DEGs
@@ -212,6 +247,7 @@ Heatmap(
 
 
 
+# Question 5
 # Gene Ontology - GENOMIC SUPER SIGNATURE - WORK IN PROGRESS
 
 #Genomic Super Signature
@@ -226,7 +262,7 @@ library(org.Hs.eg.db)
 gene_set_collection <- geneIds(org.Hs.egGO)
 gene_set_annotation <- "org.Hs.eg.db"
 
-# Perform gene set enrichment analysis (GSEA)
+# Gene Ontology - GSEA
 result <- gsea(
   data = diffex_genes$Gene,
   geneSetCollection = org.Hs.eg.db,  # Replace with your gene sets
@@ -235,13 +271,13 @@ result <- gsea(
   nPerm = 1000,  # Number of permutations for significance testing
   verbose = TRUE  # Show progress
 )
-gseapontology <- result@result
+gseaontology <- result@result
 p_values <- result$pvalues
 
 results_dir <- file.path("results")  # Change to your desired directory
-enrichment_file <- file.path(results_dir, "gseapontology_enrichment.tsv")
+enrichment_file <- file.path(results_dir, "gseaontology_enrichment.tsv")
 write.table(
-  gseapontology,
+  gseaontology,
   file = enrichment_file,
   sep = "\t",
   quote = FALSE,
