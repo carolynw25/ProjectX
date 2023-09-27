@@ -219,3 +219,14 @@ gostres <- gost(query = diffex_genes$Gene,
                 domain_scope = "annotated", custom_bg = NULL, 
                 numeric_ns = "", sources = NULL, as_short_link = FALSE, highlight = TRUE)
 gpontology <- gostres$result
+
+# Gene Ontology - CLUSTERPROFILER
+
+BiocManager::install("clusterProfiler")
+library(clusterProfiler)
+
+ego <- enrichGO(gene = diffex_genes$Gene,
+                 OrgDb = org.Hs.eg.db,
+                 keyType = 'ENSEMBL',
+                 ont = "CC")
+cpontology <- ego@result
