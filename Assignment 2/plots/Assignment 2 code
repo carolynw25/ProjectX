@@ -152,13 +152,14 @@ pca_plot <- plotPCA(vsd, intgroup = "mutation_status") + ggtitle("PCA Plot of Ex
 pca_plot
 
 # TSNE Plot
-install.packages("M3C")
+BiocManager::install("M3C”)
 library(M3C)
 tsne(count_hugo[,0:191],perplex = 10, labels = metadata$mutation_status, text = FALSE)
+
 # load your omic data here as mydata
-BiocManager::install("M3C")
-library(M3C)
-tsne_result <- tsne(expression_df, labels = as.factor(expression_df$Gene))
+#BiocManager::install("M3C")
+#library(M3C)
+#tsne_result <- tsne(expression_df, labels = as.factor(expression_df$Gene))
 
 # DESeq Continued
 
@@ -166,18 +167,87 @@ deseq_object <- DESeq(ddset)
 
 deseq_results <- results(deseq_object)
 
-deseq_results <- lfcShrink(
-  deseq_object, # The original DESeq2 object after running DESeq()
-  coef = 2, # The log fold change coefficient used in DESeq(); the default is 2.
-  res = deseq_results # The original DESeq2 results table
-)
+#deseq_results <- lfcShrink(
+#  deseq_object, # The original DESeq2 object after running DESeq()
+#  coef = 2, # The log fold change coefficient used in DESeq(); the default is 2.
+#  res = deseq_results # The original DESeq2 results table
+#)
 
-# Question -----
+
+# Question 4
 -------------------------------------------
 # Get results into data_frame, filter only genes that have p-value of 0.05 or less
 
 # ComplexHeatmap of only genes in this filter
   # Use HeatmapAnnotation to make the annotations
+library(ComplexHeatmap)
+library(circlize)
+install.packages("devtools")
+library(devtools)
+install_github("jokergoo/ComplexHeatmap")
 
-# Gene Ontology
+expressed_path <- file.path("results", "diff_expressed_genes.tsv")
+diffex_genes <- readr::read_tsv(expressed_path)
+significant_degs <- diffex_genes[diffex_genes$pvalue < 0.05 & abs(diffex_genes$log2FoldChange) > 2, ]
 
+
+# Subset the expression data to include only the significant DEGs
+expression_subset <- gene_matrix[rownames(gene_matrix) %in% significant_degs$Gene, ]
+
+# Log-transform the data (if not already log-transformed)
+expression_subset_log <- log2(expression_subset + 1)  # Adding 1 to avoid log(0)
+
+annot = HeatmapAnnotation(
+  df = data.frame(Group = metadata$mutation_status),
+  col = list(Group = c("reference" = "red", "treated" = "blue")),
+  show_legend = TRUE
+)
+
+expression_matrix <- as.matrix(expression_subset_log)
+
+column_name_font_size <- 1
+
+# Create Heatmap
+Heatmap(
+  expression_matrix,
+  name = "Log2 FC",
+  col = colorRamp2(c(-5, 0, 5), colors = c("blue", "white", "red")),  # Color scheme
+  cluster_rows = TRUE,  # Do not cluster rows
+  cluster_columns = TRUE,  # Do not cluster columns
+  column_title = "Samples",
+  row_title = "Genes",
+  column_title_side = "top",
+  show_row_names = FALSE,  # Hide row names
+  show_column_names = TRUE,
+  heatmap_legend_param = list(title = "Expression"),
+  top_annotation = annot,
+  column_names_gp = gpar(fontsize = column_name_font_size) 
+)
+
+
+# Question 5
+-------------------------------------------
+# Gene Ontology - GPROFILER2
+
+BiocManager::install("gprofiler2")
+library(gprofiler2)
+
+gostres <- gost(query = diffex_genes$Gene, 
+                organism = "hsapiens", ordered_query = FALSE, 
+                multi_query = FALSE, significant = TRUE, exclude_iea = FALSE, 
+                measure_underrepresentation = TRUE, evcodes = FALSE, 
+                user_threshold = 0.05, correction_method = "g_SCS", 
+                domain_scope = "annotated", custom_bg = NULL, 
+                numeric_ns = "", sources = NULL, as_short_link = FALSE, highlight = TRUE)
+gpontology <- gostres$result
+
+# Gene Ontology - CLUSTERPROFILER
+
+BiocManager::install("clusterProfiler")
+library(clusterProfiler)
+
+ego <- enrichGO(gene = diffex_genes$Gene,
+                 OrgDb = org.Hs.eg.db,
+                 keyType = 'ENSEMBL',
+                 ont = "CC")
+cpontology <- ego@result
