@@ -198,13 +198,16 @@ library(GenomicSuperSignature)
 
 # Perform gene set enrichment analysis (GSEA)
 result <- gsea(
-  data = expression_data,
-  geneSetCollection = your_gene_sets,  # Replace with your gene sets
-  annotation = "entrez",  # Specify the annotation type (e.g., "entrez")
-  geneIds = DEGs$GeneID,  # Provide the DEGs' gene identifiers
+  data = diffex_genes$Gene,
+  geneSetCollection = org.Hs.eg.db,  # Replace with your gene sets
+  annotation = "ENSEMBL",  # Specify the annotation type (e.g., "entrez")
+  geneIds = metadata$mutation_status,  # Provide the DEGs' gene identifiers
   nPerm = 1000,  # Number of permutations for significance testing
   verbose = TRUE  # Show progress
 )
+gseapontology <- result@result
+
+
 
 # Gene Ontology - GPROFILER2
 
