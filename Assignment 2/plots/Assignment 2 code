@@ -356,6 +356,10 @@ Heatmap(
 
 # Question 5
 -------------------------------------------
+if (!requireNamespace("BiocManager", quietly = TRUE))
+    install.packages("BiocManager")
+BiocManager::install("org.Hs.eg.db")
+library(org.Hs.eg.db)
 # Gene Ontology - CLUSTERPROFILER
 BiocManager::install("clusterProfiler")
 library(clusterProfiler)
