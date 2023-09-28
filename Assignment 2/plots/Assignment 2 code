@@ -405,6 +405,37 @@ metadata <- metadata %>%
     stringr::str_detect(stimulus, "none") ~ "reference"
   )) 
 
+# -----
+# Gene Ontology - topGo
+BiocManager::install("topGO")
+BiocManager::install("hgu95av2.db")
+library(topGO)
+library(hgu95av2.db)
+
+pvalues <- as.numeric(diffex_genes$pvalue)
+geneList <- setNames(pvalues, diffex_genes$Gene)
+topDiffGenes <- function(allScore) {
+  return(allScore < 0.05)
+}
+library(org.Hs.eg.db)
+gene2go <- select(org.Hs.eg.db, keys = diffex_genes$Gene, columns = "GO", keytype = "ENSEMBL")
+
+# Gene Ontology (GO) enrichment analysis.
+topGOdata <- new("topGOdata",
+                 ontology = "BP",
+                 allGenes = geneList, geneSel = topDiffGenes,
+                 nodeSize = 10,
+                 annot = annFUN.db, 
+                 mapping = gene2go)
+
+result <- runTest(topGOdata, algorithm = "classic", statistic = "fisher")
+
+#Creates dataframd -> exported to table
+result_df <- data.frame(“Name” = names(result@score), "P-value" = as.numeric(result@score))
+
+# -----
+# Gene Ontology -	GenomicSuperSignature - Unfinished
+
 # Question 6
 -------------------------------------------
 #gProfiler2 Table of enriched processes
