@@ -431,7 +431,7 @@ topGOdata <- new("topGOdata",
 result <- runTest(topGOdata, algorithm = "classic", statistic = "fisher")
 
 #Creates dataframd -> exported to table
-result_df <- data.frame(“Name” = names(result@score), "P-value" = as.numeric(result@score))
+result_df <- data.frame(“ID” = names(result@score), "P-value" = as.numeric(result@score))
 
 # -----
 # Gene Ontology -	GenomicSuperSignature - Unfinished
