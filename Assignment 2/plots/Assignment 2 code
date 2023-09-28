@@ -408,6 +408,9 @@ metadata <- metadata %>%
     stringr::str_detect(stimulus, "none") ~ "reference"
   )) 
 
+# Create Table
+gp_df <- data.frame("ID" = gpontology$term_id, "P-value" = gpontology$p_value)
+
 # -----
 # Gene Ontology - topGo
 BiocManager::install("topGO")
