@@ -361,6 +361,7 @@ if (!requireNamespace("BiocManager", quietly = TRUE))
     install.packages("BiocManager")
 BiocManager::install("org.Hs.eg.db")
 library(org.Hs.eg.db)
+
 # Gene Ontology - CLUSTERPROFILER
 BiocManager::install("clusterProfiler")
 library(clusterProfiler)
@@ -373,6 +374,8 @@ ego <- enrichGO(gene = diffex_genes$Gene,
                  ont = "CC")
 cpontology <- ego@result
 
+#Create table
+cp_df <- data.frame("ID" = cpontology$ID, "Gene_ID" = cpontology$geneID, "P-value" = cpontology$pvalue)
 
 # ------
 # Gene Ontology - GPROFILER2
