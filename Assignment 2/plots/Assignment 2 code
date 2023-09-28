@@ -21,18 +21,13 @@ library(org.Hs.eg.db)
 # We will need this so we can use the pipe: %>%
 library(magrittr)
 
+# Read in data and place it into the respective folders made beforehand and format/rename columns repspectively
 data_dir <- file.path("data", "ERP109789")
-
 results_dir<-file.path("results")
-
 data_file <- file.path(data_dir, "ERP109789.tsv")
-
 metadata_file <- file.path(data_dir, "metadata_ERP109789.tsv")
-
 file.exists(data_file)
-
 file.exists(metadata_file)
-
 metadata <- readr::read_tsv(metadata_file)
 
 expression_df <- readr::read_tsv(data_file) %>%
@@ -47,11 +42,12 @@ all.equal(colnames(expression_df), metadata$refinebio_accession_code)
 expression_df <- expression_df %>%
   tibble::rownames_to_column("Gene")
 
+# mapping gene identifiers from one type to another 
 count_hugo <- mapIds(
-  org.Hs.eg.db, # Replace with annotation package for your organism
+  org.Hs.eg.db, # Annotation package for your organism
   keys = expression_df$Gene,
-  keytype = "ENSEMBL", # Replace with the type of gene identifiers in your data
-  column = "SYMBOL", # The type of gene identifiers you would like to map to
+  keytype = "ENSEMBL", # Type of gene identifiers in your data
+  column = "SYMBOL", # The type of gene identifiers to map to
   multiVals = "first"
 )
 
@@ -60,7 +56,7 @@ head(count_hugo)
 
 # Question 1c
 -------------
-# Moved from Earlier
+# Moved from Later
 # Read in data TSV file & Make the data in the order of the metadata
 expression_df <- readr::read_tsv(data_file) %>%
   tibble::column_to_rownames("Gene") %>% dplyr::select(metadata$refinebio_accession_code)
@@ -109,6 +105,7 @@ count_hugo <- count_hugo[!duplicated(count_hugo$HUGO),]
 
 # Remove extra columns and make HUGO genes new rownames
 count_hugo <- dplyr::select(count_hugo, -Gene)
+#remove current row names
 count_hugo <- tibble::remove_rownames(count_hugo)
 #removes N/A points
 count_hugo <- na.omit(count_hugo)
@@ -152,6 +149,7 @@ vsd <- vst(ddset, blind = FALSE)
 
 # Create the PCA plot
 pca_plot <- plotPCA(vsd, intgroup = "mutation_status") + ggtitle("PCA Plot of Expression Data")
+#display PCA plot
 pca_plot
 
 # TSNE Plot
@@ -165,7 +163,6 @@ tsne(count_hugo[,0:191],perplex = 10, labels = metadata$mutation_status, text = 
 #tsne_result <- tsne(expression_df, labels = as.factor(expression_df$Gene))
 
 # DESeq Continued
-
 deseq_object <- DESeq(ddset)
 
 deseq_results <- results(deseq_object)
@@ -289,7 +286,7 @@ volcano_plot <- EnhancedVolcano::EnhancedVolcano(
   y = "padj",
   pCutoff = 0.01 # Loosen the cutoff since we supplied corrected p-values
 )
-
+#Creates/Shows volcano_plot
 volcano_plot
 
 # Filter based on p-value
@@ -315,8 +312,10 @@ install.packages("devtools")
 library(devtools)
 install_github("jokergoo/ComplexHeatmap")
 
+# Read in data from results folder
 expressed_path <- file.path("results", "diff_expressed_genes.tsv")
 diffex_genes <- readr::read_tsv(expressed_path)
+# Filters genes based on the specifications
 significant_degs <- diffex_genes[diffex_genes$pvalue < 0.05 & abs(diffex_genes$log2FoldChange) > 2, ]
 
 
@@ -326,6 +325,7 @@ expression_subset <- gene_matrix[rownames(gene_matrix) %in% significant_degs$Gen
 # Log-transform the data (if not already log-transformed)
 expression_subset_log <- log2(expression_subset + 1)  # Adding 1 to avoid log(0)
 
+# creating an annotation to add additional info/metadata to the heatmap
 annot = HeatmapAnnotation(
   df = data.frame(Group = metadata$mutation_status),
   col = list(Group = c("reference" = "red", "treated" = "blue")),
@@ -334,6 +334,7 @@ annot = HeatmapAnnotation(
 
 expression_matrix <- as.matrix(expression_subset_log)
 
+#changes column name size so they don't overlap
 column_name_font_size <- 1
 
 # Create Heatmap
@@ -364,6 +365,8 @@ library(org.Hs.eg.db)
 BiocManager::install("clusterProfiler")
 library(clusterProfiler)
 
+# Gene Ontology (GO) enrichment analysis. 
+# identifying enriched terms in the Cellular Component (CC) category
 ego <- enrichGO(gene = diffex_genes$Gene,
                  OrgDb = org.Hs.eg.db,
                  keyType = 'ENSEMBL',
@@ -371,10 +374,12 @@ ego <- enrichGO(gene = diffex_genes$Gene,
 cpontology <- ego@result
 
 
+# ------
 # Gene Ontology - GPROFILER2
 BiocManager::install("gprofiler2")
 library(gprofiler2)
 
+# Gene Ontology (GO) enrichment analysis.
 gostres <- gost(query = diffex_genes$Gene, 
                 organism = "hsapiens", ordered_query = FALSE, 
                 multi_query = FALSE, significant = TRUE, exclude_iea = FALSE, 
