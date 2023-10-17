@@ -126,3 +126,37 @@ gene_variability <- apply(count_hugo, 1, var)
 gene_ranking <- order(gene_variability, decreasing = TRUE)
 top_5000_variable_genes <- count_hugo[gene_ranking[1:5000], ]
 
+
+# Question 2b
+# K-Means
+
+install.packages("stats")
+install.packages("ggplot2")
+
+# Load libraries
+library(stats)
+library(ggplot2)
+
+# Assuming top_5000_variable_genes contains your data
+# If not, load your data into this variable.
+
+# Specify the number of clusters (you can change this value)
+num_clusters <- 3
+
+# Perform K-means clustering
+kmeans_result <- kmeans(top_5000_variable_genes, centers = num_clusters)
+
+# Add cluster assignments to your data
+top_5000_variable_genes$cluster <- kmeans_result$cluster
+
+# Create a cluster plot
+pca_result <- prcomp(top_5000_variable_genes[, -ncol(top_5000_variable_genes)], scale. = TRUE)
+
+# Create a data frame with the PCA results and cluster assignments
+pca_data <- data.frame(PC1 = pca_result$x[, 1], PC2 = pca_result$x[, 2], Cluster = top_5000_variable_genes$cluster)
+
+# Plot the data
+ggplot(data = pca_data, aes(x = PC1, y = PC2, color = factor(Cluster))) +
+  geom_point() +
+  labs(title = "K-means Clustering", x = "Principal Component 1", y = "Principal Component 2") +
+  scale_color_discrete(name = "Cluster")
