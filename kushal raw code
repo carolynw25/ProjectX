@@ -438,3 +438,185 @@ chisqTable[4,1] <- chisq.test(metadata$stimulus, '''ADD METHODs LIST''')$p.value
 
 chisqTable[,2] <- p.adjust(chisqTable[,1])
 
+#SAVE INCASE BUT DOESN'T WORK
+
+# ComplexHeatmap of only genes in this filter
+# Use HeatmapAnnotation to make the annotations
+install.packages("pheatmap")
+install.packages("gplots")
+library(pheatmap)
+library(cluster)
+library(ggplot2)
+library(gplots)
+library(RColorBrewer)
+library(ComplexHeatmap)
+# Perform PAM clustering
+k_pam <- 5  # Desired number of clusters for PAM
+pam_result <- pam(top_5000_variable_genes, k_pam)
+
+# Add PAM cluster assignments to your data
+top_5000_variable_genes$Cluster_PAM <- pam_result$clustering
+
+# K-Means clustering
+kmeans_clusters <- kmeans(top_5000_variable_genes, centers = num_clusters)
+top_5000_variable_genes$Cluster_KMeans <- kmeans_clusters$cluster
+
+# Hclust clustering
+# (Assuming you've already performed hierarchical clustering and obtained hclust_result)
+
+# Convert hclust result to clusters using a certain height threshold
+hclust_clusters <- cutree(hclust_result, h = 30)  
+top_5000_variable_genes$Cluster_Hclust <- hclust_clusters
+
+# ConsensusClusterPlus clustering
+# Add ConsensusClusterPlus cluster assignments to your data
+consensus_clusters <- results$consensusClass
+top_5000_variable_genes$Cluster_Consensus <- consensus_clusters
+
+# You can add more clustering methods in a similar way if needed
+
+# Sample groups from Assignment 1
+# Add sample group annotations (mutation_status)
+
+sample_groups <- metadata$mutation_status
+# Define the number of clusters from each method
+num_clusters_pam <- k_pam
+num_clusters_kmeans <- num_clusters
+num_clusters_hclust <- max(hclust_clusters)
+num_clusters_consensus <- max(consensus_clusters)
+
+# Generate color palettes for clusters
+colors_pam <- brewer.pal(num_clusters_pam, "Set1")
+colors_kmeans <- brewer.pal(num_clusters_kmeans, "Set2")
+colors_hclust <- brewer.pal(num_clusters_hclust, "Set3")
+
+# Define a custom color palette for ConsensusClusterPlus clusters
+custom_palette <- c("#1f77b4", "#ff7f0e", "#2ca02c", "#d62728", "#9467bd")
+colors_consensus <- custom_palette[consensus_clusters]
+
+# Create a color vector for each clustering method
+pam_colors <- colors_pam[pam_result$clustering]
+kmeans_colors <- colors_kmeans[kmeans_clusters$cluster]
+hclust_colors <- colors_hclust[hclust_clusters]
+consensus_colors <- colors_consensus[consensus_clusters]
+
+# Create a color matrix for the heatmap annotation
+#annotation_colors <- matrix(
+#  c(pam_colors, kmeans_colors, hclust_colors, consensus_colors, sample_groups),
+#  ncol = ncol(heatmap_data),
+#  byrow = FALSE
+#)
+
+# Ensure annotation_colors has the correct dimensions
+annotation_colors <- matrix(
+  c(pam_colors, kmeans_colors, hclust_colors, consensus_colors, sample_groups),
+  ncol = ncol(heatmap_data),
+  byrow = FALSE
+)
+
+# Create the heatmap with annotations
+heatmap_data <- as.matrix(top_5000_variable_genes[1:5000, ])  # Include only the top 5000 genes
+
+# Create the heatmap with annotations
+
+# heatmap.2(
+#   heatmap_data,
+#   Colv = FALSE,  # Turn off column clustering
+#   Rowv = FALSE,  # Turn off row clustering
+#   col = colorRampPalette(c("blue", "white", "red"))(100),  # Color gradient for data
+#   trace = "none",  # Remove trace lines
+#   labRow = FALSE,  # Hide row labels
+#   labCol = FALSE,  # Hide column labels
+#   key = TRUE,
+#   keysize = 1,
+#   key.par = list(mar = c(5, 2, 1, 4)),
+#   symkey = FALSE,
+#   density.info = "none",
+#   cellnote = annotation_colors,  # Use the annotation colors
+#   notecol = "black",
+#   notecex = 1,
+#   main = "Heatmap with Annotations"
+# )
+
+# Create the heatmap with annotations, without dendrograms
+heatmap.2(
+  heatmap_data,
+  Colv = FALSE,  # Turn off column clustering and dendrogram
+  Rowv = FALSE,  # Turn off row clustering and dendrogram
+  col = colorRampPalette(c("blue", "white", "red"))(100),  # Color gradient for data
+  trace = "none",  # Remove trace lines
+  labRow = FALSE,  # Hide row labels
+  labCol = FALSE,  # Hide column labels
+  key = TRUE,
+  keysize = 1,
+  key.par = list(mar = c(5, 2, 1, 4)),
+  symkey = FALSE,
+  density.info = "none",
+  cellnote = annotation_colors,  # Use the annotation colors
+  notecol = "black",
+  notecex = 1,
+  main = "Heatmap with Annotations"
+)
+
+
+#TAKE 500 AS I LOSE
+
+# Part 1
+# Load Data
+data_dir <- file.path("data", "ERP109789")
+data_file <- file.path(data_dir, "ERP109789.tsv")
+file.exists(data_file)
+data <- readr::read_tsv(data_file)
+# Load Metadata
+metadata_file <- file.path(data_dir, "metadata_ERP109789.tsv")
+file.exists(metadata_file)
+metadata <- readr::read_tsv(metadata_file)
+# Part 2a
+geneNames <- data$Gene
+data$Gene <- NULL
+rownames(data) <- geneNames
+data <- data.matrix(data)
+mads <- apply(data,1,mad)
+data_5000<-data[rev(order(mads))[1:5000],]
+# Part 2b
+# Choose k value
+k <- 10
+# CCP
+BiocManager::install("ConsensusClusterPlus")
+library(ConsensusClusterPlus)
+title <- tempdir()
+ccp_results <- ConsensusClusterPlus(data_5000, maxK=k, reps=100, pItem=0.8, pFeature=1, title = title, distance="pearson", plot="png")
+ccp_clusterList <- ccp_results[[10]][["consensusClass"]]
+# hclust
+library(stats)
+dm_5000 <- dist(t(data_5000), method = "euclidean")
+hclust_dendogram <- hclust(dm_5000, method = "complete")
+hclust_clusterList <- cutree(hclust_dendogram, k)
+
+
+# Load required libraries
+install.packages("pheatmap")
+library(pheatmap)
+install.packages("magick")
+library(magick)
+install.packages("Cairo")
+library(Cairo)
+
+# Create a data frame with cluster assignments from CCP
+cluster_assignments <- ccp_clusterList
+
+# Generate a color palette for the clusters
+cluster_colors <- colorRampPalette(brewer.pal(10, "Set1"))(k)
+
+# Create a heatmap with annotations
+pheatmap(
+  as.matrix(data_5000),
+  annotation_col = data.frame(Cluster = cluster_assignments),
+  annotation_colors = list(Cluster = cluster_colors),
+  display_numbers = FALSE,
+  cluster_rows = FALSE,
+  cluster_cols = FALSE,
+  use_raster = TRUE,
+  main = "ConsensusClusterPlus Heatmap",
+  filename = "heatmap.png"  # Change the file format as needed
+)
