@@ -393,4 +393,48 @@ heatmap.2(
   main = "Heatmap with Annotations"
 )
 
+# DEVIN'S CODE
+# Part 1
+  # Load Data
+data_dir <- file.path("data", "ERP109789")
+data_file <- file.path(data_dir, "ERP109789.tsv")
+file.exists(data_file)
+data <- readr::read_tsv(data_file)
+  # Load Metadata
+metadata_file <- file.path(data_dir, "metadata_ERP109789.tsv")
+file.exists(metadata_file)
+metadata <- readr::read_tsv(metadata_file)
+# Part 2a
+geneNames <- data$Gene
+data$Gene <- NULL
+rownames(data) <- geneNames
+data <- data.matrix(data)
+mads <- apply(data,1,mad)
+data_5000<-data[rev(order(mads))[1:5000],]
+# Part 2b
+  # Choose k value
+k <- 10
+  # CCP
+BiocManager::install("ConsensusClusterPlus")
+library(ConsensusClusterPlus)
+title <- tempdir()
+ccp_results <- ConsensusClusterPlus(data_5000, maxK=k, reps=100, pItem=0.8, pFeature=1, title = title, distance="pearson", plot="png")
+ccp_clusterList <- ccp_results[[10]][["consensusClass"]]
+  # hclust
+library(stats)
+dm_5000 <- dist(t(data_5000), method = "euclidean")
+hclust_dendogram <- hclust(dm_5000, method = "complete")
+hclust_clusterList <- cutree(hclust_dendogram, k)
+
+# Part 4
+chisqTable <- data.frame(matrix(nrow = 4, ncol = 2))
+colnames(chisqTable) <- c("Unadjusted", "Adjusted")
+rownames(chisqTable) <- c("CCP", "hclust", "M3", "M4") # CHANGE THESE TO METHOD NAMES
+
+chisqTable[1,1] <- chisq.test(metadata$stimulus, ccp_clusterList)$p.value
+chisqTable[2,1] <- chisq.test(metadata$stimulus, hclust_clusterList)$p.value
+chisqTable[3,1] <- chisq.test(metadata$stimulus, '''ADD METHODs LIST''')$p.value
+chisqTable[4,1] <- chisq.test(metadata$stimulus, '''ADD METHODs LIST''')$p.value
+
+chisqTable[,2] <- p.adjust(chisqTable[,1])
 
