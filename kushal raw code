@@ -124,7 +124,12 @@ plot(density_plot, main = "Density Plot of Per-Gene Median Expression Ranges")
 
 gene_variability <- apply(count_hugo, 1, var)
 gene_ranking <- order(gene_variability, decreasing = TRUE)
+
 top_5000_variable_genes <- count_hugo[gene_ranking[1:5000], ]
+top_10_variable_genes <- count_hugo[gene_ranking[1:10], ]
+top_100_variable_genes <- count_hugo[gene_ranking[1:100], ]
+top_1000_variable_genes <- count_hugo[gene_ranking[1:1000], ]
+top_10000_variable_genes <- count_hugo[gene_ranking[1:10000], ]
 
 
 # Question 2b
