@@ -298,6 +298,67 @@ ggplot(data_with_clusters, aes(x = PC1, y = PC2, color = factor(Cluster))) +
   theme_minimal()
 
 
+pam_result <- pam(top_10_variable_genes, k)
+
+# Create a data frame with cluster assignments
+data_with_clusters <- data.frame(top_10_variable_genes, Cluster = pam_result$clustering)
+
+# Create a scatter plot using two principal components (you can adjust this for your data)
+pca <- prcomp(top_10_variable_genes)
+data_with_clusters <- cbind(data_with_clusters, as.data.frame(pca$x[,1:2]))
+
+# Create a scatter plot
+ggplot(data_with_clusters, aes(x = PC1, y = PC2, color = factor(Cluster))) +
+  geom_point() +
+  labs(title = "PAM Clustering Results (Top 10)") +
+  theme_minimal()
+
+pam_result <- pam(top_100_variable_genes, k)
+
+# Create a data frame with cluster assignments
+data_with_clusters <- data.frame(top_100_variable_genes, Cluster = pam_result$clustering)
+
+# Create a scatter plot using two principal components (you can adjust this for your data)
+pca <- prcomp(top_100_variable_genes)
+data_with_clusters <- cbind(data_with_clusters, as.data.frame(pca$x[,1:2]))
+
+# Create a scatter plot
+ggplot(data_with_clusters, aes(x = PC1, y = PC2, color = factor(Cluster))) +
+  geom_point() +
+  labs(title = "PAM Clustering Results (Top 100)") +
+  theme_minimal()
+
+pam_result <- pam(top_1000_variable_genes, k)
+
+# Create a data frame with cluster assignments
+data_with_clusters <- data.frame(top_1000_variable_genes, Cluster = pam_result$clustering)
+
+# Create a scatter plot using two principal components (you can adjust this for your data)
+pca <- prcomp(top_1000_variable_genes)
+data_with_clusters <- cbind(data_with_clusters, as.data.frame(pca$x[,1:2]))
+
+# Create a scatter plot
+ggplot(data_with_clusters, aes(x = PC1, y = PC2, color = factor(Cluster))) +
+  geom_point() +
+  labs(title = "PAM Clustering Results (Top 1000)") +
+  theme_minimal()
+
+pam_result <- pam(top_10000_variable_genes, k)
+
+# Create a data frame with cluster assignments
+data_with_clusters <- data.frame(top_10000_variable_genes, Cluster = pam_result$clustering)
+
+# Create a scatter plot using two principal components (you can adjust this for your data)
+pca <- prcomp(top_10000_variable_genes)
+data_with_clusters <- cbind(data_with_clusters, as.data.frame(pca$x[,1:2]))
+
+# Create a scatter plot
+ggplot(data_with_clusters, aes(x = PC1, y = PC2, color = factor(Cluster))) +
+  geom_point() +
+  labs(title = "PAM Clustering Results (Top 10000)") +
+  theme_minimal()
+
+
 # Print the clustering results
 #print(pam_result)
 
