@@ -404,3 +404,31 @@ ggplot(alluvial_data, aes(axis1 = GeneSet, axis2 = Cluster)) +
   geom_stratum() +
   theme_void() +
   labs(title = "Cluster Memberships for Different Gene Sets")
+
+#H CLUST
+# Install and load the required packages
+install.packages("ggalluvial")
+library(ggplot2)
+library(ggalluvial)
+
+# Assuming you have cluster assignments for all gene sets
+cluster_assignments_5000 <- cutree(hclust_result_5000, k = 5)  # Adjust 'k' based on your clustering setup
+cluster_assignments_10 <- cutree(hclust_result_10, k = 5)
+cluster_assignments_100 <- cutree(hclust_result_100, k = 5)
+cluster_assignments_1000 <- cutree(hclust_result_1000, k = 5)
+cluster_assignments_10000 <- cutree(hclust_result_10000, k = 5)
+
+# Create a data frame
+alluvial_data <- data.frame(
+  GeneSet = factor(c("Top 5000", "Top 10", "Top 100", "Top 1000", "Top 10000")),
+  Cluster = factor(c(cluster_assignments_5000, cluster_assignments_10, cluster_assignments_100, cluster_assignments_1000, cluster_assignments_10000))
+)
+
+# Create the alluvial diagram
+ggplot(alluvial_data, aes(axis1 = GeneSet, axis2 = Cluster)) +
+  geom_alluvium(aes(fill = Cluster)) +
+  geom_stratum() +
+  theme_void() +
+  labs(title = "Cluster Memberships for Different Gene Sets")
+
+
