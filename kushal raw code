@@ -120,6 +120,7 @@ density_plot <- density(gene_median_ranges)
 plot(density_plot, main = "Density Plot of Per-Gene Median Expression Ranges")
 
 
+# Assignment 3
 # Question 2a
 
 gene_variability <- apply(count_hugo, 1, var)
@@ -130,6 +131,7 @@ top_10_variable_genes <- count_hugo[gene_ranking[1:10], ]
 top_100_variable_genes <- count_hugo[gene_ranking[1:100], ]
 top_1000_variable_genes <- count_hugo[gene_ranking[1:1000], ]
 top_10000_variable_genes <- count_hugo[gene_ranking[1:10000], ]
+
 
 
 # Question 2b
@@ -167,6 +169,8 @@ ggplot(data = pca_data, aes(x = PC1, y = PC2, color = factor(Cluster))) +
   scale_color_discrete(name = "Cluster")
 
 
+
+#Question 2b -	Hierarchical clustering (hclust)
 #Hclust
 # Calculate gene variability
 gene_variability <- apply(count_hugo, 1, var)
@@ -192,3 +196,36 @@ par(cex = 0.5)  # Adjust the font size by changing cex (0.5 is an example size)
 # Plot the dendrogram
 plot(hclust_result, main = "Hierarchical Clustering Dendrogram for Top 100 Variable Genes", hang = -1)
 
+
+
+#Question 2b - PAM Clustering 
+install.packages("cluster")
+
+# Load the required library
+library(cluster)
+library(ggplot2)  # For creating the scatter plot
+
+# Perform PAM clustering
+# Specify the number of clusters (k) in the 'k' parameter
+k <- 5  # Desired number of clusters
+pam_result <- pam(top_5000_variable_genes, k)
+
+# Create a data frame with cluster assignments
+data_with_clusters <- data.frame(top_5000_variable_genes, Cluster = pam_result$clustering)
+
+# Create a scatter plot using two principal components (you can adjust this for your data)
+pca <- prcomp(top_5000_variable_genes)
+data_with_clusters <- cbind(data_with_clusters, as.data.frame(pca$x[,1:2]))
+
+# Create a scatter plot
+ggplot(data_with_clusters, aes(x = PC1, y = PC2, color = factor(Cluster))) +
+  geom_point() +
+  labs(title = "PAM Clustering Results") +
+  theme_minimal()
+
+
+# Print the clustering results
+#print(pam_result)
+
+# To access cluster assignments, you can use:
+#cluster_assignments <- pam_result$clustering
