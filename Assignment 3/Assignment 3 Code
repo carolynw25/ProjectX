@@ -151,10 +151,10 @@ library(ggplot2)
 num_clusters <- 3
 
 # Perform K-means clustering
-kmeans_result <- kmeans(top_5000_variable_genes, centers = num_clusters)
+kmeans_result_5000 <- kmeans(top_5000_variable_genes, centers = num_clusters)
 
 # Add cluster assignments to your data
-top_5000_variable_genes$cluster <- kmeans_result$cluster
+top_5000_variable_genes$cluster <- kmeans_result_5000$cluster
 
 # Create a cluster plot
 pca_result_5000 <- prcomp(top_5000_variable_genes[, -ncol(top_5000_variable_genes)], scale. = TRUE)
@@ -169,10 +169,10 @@ ggplot(data = pca_data_5000, aes(x = PC1, y = PC2, color = factor(Cluster))) +
   scale_color_discrete(name = "Cluster")
 
 # Perform K-means clustering on top_10_variable_genes
-kmeans_result <- kmeans(top_10_variable_genes, centers = num_clusters)
+kmeans_result_10 <- kmeans(top_10_variable_genes, centers = num_clusters)
 
 # Add cluster assignments to your data
-top_10_variable_genes$cluster <- kmeans_result$cluster
+top_10_variable_genes$cluster <- kmeans_result_10$cluster
 
 # Create a cluster plot for top_1000_variable_genes
 pca_result_10 <- prcomp(top_10_variable_genes[, -ncol(top_10_variable_genes)], scale. = TRUE)
@@ -188,10 +188,10 @@ ggplot(data = pca_data_10, aes(x = PC1, y = PC2, color = factor(Cluster))) +
 #cluster_assignments <- pam_result$clustering
 
 # Perform K-means clustering on top_100_variable_genes
-kmeans_result <- kmeans(top_100_variable_genes, centers = num_clusters)
+kmeans_result_100 <- kmeans(top_100_variable_genes, centers = num_clusters)
 
 # Add cluster assignments to your data
-top_100_variable_genes$cluster <- kmeans_result$cluster
+top_100_variable_genes$cluster <- kmeans_result_100$cluster
 
 # Create a cluster plot for top_1000_variable_genes
 pca_result_100 <- prcomp(top_100_variable_genes[, -ncol(top_100_variable_genes)], scale. = TRUE)
@@ -207,10 +207,10 @@ ggplot(data = pca_data_100, aes(x = PC1, y = PC2, color = factor(Cluster))) +
 #cluster_assignments <- pam_result$clustering
 
 # Perform K-means clustering on top_1000_variable_genes
-kmeans_result <- kmeans(top_1000_variable_genes, centers = num_clusters)
+kmeans_result_1000 <- kmeans(top_1000_variable_genes, centers = num_clusters)
 
 # Add cluster assignments to your data
-top_1000_variable_genes$cluster <- kmeans_result$cluster
+top_1000_variable_genes$cluster <- kmeans_result_1000$cluster
 
 # Create a cluster plot for top_1000_variable_genes
 pca_result_1000 <- prcomp(top_1000_variable_genes[, -ncol(top_1000_variable_genes)], scale. = TRUE)
@@ -226,10 +226,10 @@ ggplot(data = pca_data_1000, aes(x = PC1, y = PC2, color = factor(Cluster))) +
 #cluster_assignments <- pam_result$clustering
 
 # Perform K-means clustering on top_10000_variable_genes
-kmeans_result <- kmeans(top_10000_variable_genes, centers = num_clusters)
+kmeans_result_10000 <- kmeans(top_10000_variable_genes, centers = num_clusters)
 
 # Add cluster assignments to your data
-top_10000_variable_genes$cluster <- kmeans_result$cluster
+top_10000_variable_genes$cluster <- kmeans_result_10000$cluster
 
 # Create a cluster plot for top_10000_variable_genes
 pca_result_10000 <- prcomp(top_10000_variable_genes[, -ncol(top_10000_variable_genes)], scale. = TRUE)
