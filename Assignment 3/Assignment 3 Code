@@ -249,43 +249,43 @@ ggplot(data = pca_data_10000, aes(x = PC1, y = PC2, color = factor(Cluster))) +
 #top 10 hclustering
 top_10_variable_genes <- count_hugo[gene_ranking[1:10], ]
 distance_matrix <- dist(top_10_variable_genes, method = "euclidean")
-hclust_result <- hclust(distance_matrix, method = "ward.D2")
+hclust_result_10 <- hclust(distance_matrix, method = "ward.D2")
 options(repr.plot.width = 10, repr.plot.height = 10)
 par(cex = 0.5)  # Adjust the font size
-plot(hclust_result, main = "Hierarchical Clustering Dendrogram for Top 10 Variable Genes", hang = -1)
+plot(hclust_result_10, main = "Hierarchical Clustering Dendrogram for Top 10 Variable Genes", hang = -1)
 
 #top 100 hclustering
 # Top 100
 top_100_variable_genes <- count_hugo[gene_ranking[1:100], ]
 distance_matrix <- dist(top_100_variable_genes, method = "euclidean")
-hclust_result <- hclust(distance_matrix, method = "ward.D2")
+hclust_resul_100t <- hclust(distance_matrix, method = "ward.D2")
 options(repr.plot.width = 10, repr.plot.height = 10)
 par(cex = 0.5)  # Adjust the font size
-plot(hclust_result, main = "Hierarchical Clustering Dendrogram for Top 100 Variable Genes", hang = -1)
+plot(hclust_result_100, main = "Hierarchical Clustering Dendrogram for Top 100 Variable Genes", hang = -1)
 
 # Top 1000 hclustering
 top_1000_variable_genes <- count_hugo[gene_ranking[1:1000], ]
 distance_matrix <- dist(top_1000_variable_genes, method = "euclidean")
-hclust_result <- hclust(distance_matrix, method = "ward.D2")
+hclust_result_1000 <- hclust(distance_matrix, method = "ward.D2")
 options(repr.plot.width = 10, repr.plot.height = 10)
 par(cex = 0.5)  # Adjust the font size
-plot(hclust_result, main = "Hierarchical Clustering Dendrogram for Top 1000 Variable Genes", hang = -1)
+plot(hclust_result_1000, main = "Hierarchical Clustering Dendrogram for Top 1000 Variable Genes", hang = -1)
 
 # Top 5000 hclustering
 top_5000_variable_genes <- count_hugo[gene_ranking[1:5000], ]
 distance_matrix <- dist(top_5000_variable_genes, method = "euclidean")
-hclust_result <- hclust(distance_matrix, method = "ward.D2")
+hclust_result_5000 <- hclust(distance_matrix, method = "ward.D2")
 options(repr.plot.width = 10, repr.plot.height = 10)
 par(cex = 0.5)  # Adjust the font size
-plot(hclust_result, main = "Hierarchical Clustering Dendrogram for Top 5000 Variable Genes", hang = -1)
+plot(hclust_result_5000, main = "Hierarchical Clustering Dendrogram for Top 5000 Variable Genes", hang = -1)
 
 # Top 10000
 top_10000_variable_genes <- count_hugo[gene_ranking[1:10000], ]
 distance_matrix <- dist(top_10000_variable_genes, method = "euclidean")
-hclust_result <- hclust(distance_matrix, method = "ward.D2")
+hclust_result_10000 <- hclust(distance_matrix, method = "ward.D2")
 options(repr.plot.width = 10, repr.plot.height = 10)
 par(cex = 0.5)  # Adjust the font size
-plot(hclust_result, main = "Hierarchical Clustering Dendrogram for Top 10000 Variable Genes", hang = -1)
+plot(hclust_result_10000, main = "Hierarchical Clustering Dendrogram for Top 10000 Variable Genes", hang = -1)
 
 
 
