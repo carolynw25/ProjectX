@@ -293,6 +293,104 @@ plot(cluster_counts, result, type = "b", xlab = "Number of Clusters (k)", ylab =
 
 /////////////////////////////////////////////////////////////////////////////////////
   
+#TESTING
+#Question 3
 
+# ComplexHeatmap of only genes in this filter
+# Use HeatmapAnnotation to make the annotations
+install.packages("pheatmap")
+library(pheatmap)
+library(cluster)
+library(ggplot2)
+#library(gplots)
+library(RColorBrewer)
+library(ComplexHeatmap)
+# Perform PAM clustering
+k_pam <- 5  # Desired number of clusters for PAM
+pam_result <- pam(top_5000_variable_genes, k_pam)
+
+# Add PAM cluster assignments to your data
+top_5000_variable_genes$Cluster_PAM <- pam_result$clustering
+
+# K-Means clustering
+kmeans_clusters <- kmeans(top_5000_variable_genes, centers = num_clusters)
+top_5000_variable_genes$Cluster_KMeans <- kmeans_clusters$cluster
+
+# Hclust clustering
+# (Assuming you've already performed hierarchical clustering and obtained hclust_result)
+
+# Convert hclust result to clusters using a certain height threshold
+hclust_clusters <- cutree(hclust_result, h = 30)  
+top_5000_variable_genes$Cluster_Hclust <- hclust_clusters
+
+# You can add more clustering methods in a similar way if needed
+
+
+# Read in data from results folder
+expressed_path <- file.path("results", "diff_expressed_genes.tsv")
+diffex_genes <- readr::read_tsv(expressed_path)
+# Filters genes based on the specifications
+significant_degs <- diffex_genes[diffex_genes$pvalue < 0.05 & abs(diffex_genes$log2FoldChange) > 2, ]
+
+
+# Subset the expression data to include only the significant DEGs
+expression_subset <- gene_matrix[rownames(gene_matrix) %in% significant_degs$Gene, ]
+
+# Log-transform the data (if not already log-transformed)
+expression_subset_log <- log2(expression_subset + 1)  # Adding 1 to avoid log(0)
+
+#TESTING HELPPPPP MERGE METADATA$MUTATION_STATUS INTO TOP 5000 TO PUT INTO SAMPLE_GROUP
+#metadata$mutation_status <- metadata$mutation_status[match(rownames(expression_subset_log), metadata$refinebio_accession_code)]
+
+
+
+# Sample groups from Assignment 1
+# Add sample group annotations (mutation_status)
+merged_data <- merge(top_5000_variable_genes, metadata$mutation_status, by.x = "SampleID", by.y = "SampleID", all.x = TRUE)
+top_5000_variable_genes$sample_group <- merged_data$mutation_status
+
+sample_groups <- metadata$mutation_status
+# Define the number of clusters from each method
+num_clusters_pam <- k_pam
+num_clusters_kmeans <- num_clusters
+num_clusters_hclust <- max(hclust_clusters)
+
+# Generate color palettes for clusters
+colors_pam <- brewer.pal(num_clusters_pam, "Set1")
+colors_kmeans <- brewer.pal(num_clusters_kmeans, "Set2")
+colors_hclust <- brewer.pal(num_clusters_hclust, "Set3")
+
+# Create a color vector for each clustering method
+pam_colors <- colors_pam[pam_result$clustering]
+kmeans_colors <- colors_kmeans[kmeans_clusters$cluster]
+hclust_colors <- colors_hclust[hclust_clusters]
+
+# Create a color matrix for the heatmap annotation
+annotation_colors <- matrix(
+  c(pam_colors, kmeans_colors, hclust_colors, sample_groups),
+  ncol = 4,
+  byrow = FALSE
+)
+
+# Create the heatmap with annotations
+heatmap.2(
+  as.matrix(top_5000_variable_genes[, 1:5000]),  # Include only the top 5000 genes
+  Colv = FALSE,  # Turn off column clustering
+  dendrogram = "row",
+  col = colorRampPalette(c("blue", "white", "red"))(100),  # Color gradient for data
+  trace = "none",  # Remove trace lines
+  labRow = FALSE,  # Hide row labels
+  labCol = FALSE,  # Hide column labels
+  key = TRUE,
+  keysize = 1,
+  key.par = list(mar = c(5, 2, 1, 4)),
+  symkey = FALSE,
+  density.info = "none",
+  cellnote = annotation_colors,  # Use the annotation colors
+  notecol = "black",
+  notecex = 1,
+  Rowv = TRUE,
+  main = "Heatmap with Annotations"
+)
 
 
