@@ -1,0 +1,231 @@
+# Question 1
+if (!("org.Hs.eg.db" %in% installed.packages())) {
+  # Install this package if it isn't installed yet
+  BiocManager::install("org.Hs.eg.db", update = FALSE)
+}
+
+# Attach the library
+library(org.Hs.eg.db)
+
+# We will need this so we can use the pipe: %>%
+library(magrittr)
+
+data_dir <- file.path("data", "ERP109789")
+
+results_dir<-file.path("results")
+
+data_file <- file.path(data_dir, "ERP109789.tsv")
+
+metadata_file <- file.path(data_dir, "metadata_ERP109789.tsv")
+
+file.exists(data_file)
+
+file.exists(metadata_file)
+
+metadata <- readr::read_tsv(metadata_file)
+
+expression_df <- readr::read_tsv(data_file) %>%
+  # Tuck away the Gene ID column as row names
+  tibble::column_to_rownames("Gene")
+
+expression_df <- expression_df %>%
+  dplyr::select(metadata$refinebio_accession_code)
+
+all.equal(colnames(expression_df), metadata$refinebio_accession_code)
+
+expression_df <- expression_df %>%
+  tibble::rownames_to_column("Gene")
+
+count_hugo <- mapIds(
+  org.Hs.eg.db, # Replace with annotation package for your organism
+  keys = expression_df$Gene,
+  keytype = "ENSEMBL", # Replace with the type of gene identifiers in your data
+  column = "SYMBOL", # The type of gene identifiers you would like to map to
+  multiVals = "first"
+)
+
+head(count_hugo)
+
+
+# Question 1
+
+# Moved from Earlier
+# Read in data TSV file & Make the data in the order of the metadata
+expression_df <- readr::read_tsv(data_file) %>%
+  tibble::column_to_rownames("Gene") %>% dplyr::select(metadata$refinebio_accession_code)
+
+# Check if this is in the same order
+all.equal(colnames(expression_df), metadata$refinebio_accession_code)
+
+head(metadata$refinebio_title)
+
+# Simplify Condition to be Treated vs Reference instead of multiple treatments
+metadata <- metadata %>%
+  dplyr::mutate(mutation_status = dplyr::case_when(
+    stringr::str_detect(stimulus, "brain-derived neurotrophic factor") ~ "treated",
+    stringr::str_detect(stimulus, "TrkB agonist antibody ZEB85") ~ "treated",
+    stringr::str_detect(stimulus, "neurotrophin-4") ~ "treated",
+    stringr::str_detect(stimulus, "none") ~ "reference"
+  ))
+
+# Filter rows with less than 10 counts total in all samples
+filtered_expression_df <- expression_df %>%
+  dplyr::filter(rowSums(.) >= 10)
+
+gene_matrix <- round(filtered_expression_df)
+
+metadata <- metadata %>%
+  dplyr::mutate(
+    # Here we define the values our factor variable can have and their order.
+    mutation_status = factor(mutation_status, levels = c("reference", "treated"))
+  )
+
+# Make rowname column temporarily to do HUGO conversion
+temp <- tibble::rownames_to_column(gene_matrix, var = "Gene")
+
+
+# Change to HUGO names
+count_hugo <- data.frame("HUGO" = mapIds(
+  org.Hs.eg.db, # Replace with annotation package for your organism
+  keys = temp$Gene,
+  keytype = "ENSEMBL", # Replace with the type of gene identifiers in your data
+  column = "SYMBOL", # The type of gene identifiers you would like to map to
+  multiVals = "first"
+),temp)
+
+# Remove Duplicates
+count_hugo <- count_hugo[!duplicated(count_hugo$HUGO),]
+
+# Remove extra columns and make HUGO genes new rownames
+count_hugo <- dplyr::select(count_hugo, -Gene)
+count_hugo <- tibble::remove_rownames(count_hugo)
+#removes N/A points
+count_hugo <- na.omit(count_hugo)
+#Makes rownames the HUGO names
+count_hugo <- tibble::column_to_rownames(count_hugo,var = "HUGO")
+
+
+# Counts File after all of the preprocessing (use for TSNE, Density Plot, Heatmap, and Differential Expression)
+# write.csv(count_hugo, file="counts.csv")
+
+
+# Load the data
+data <- read.table(data_file, header = TRUE, sep = "\t")
+# Log-scale the data (assuming gene expression values start from column 2)
+log_counts <- log(count_hugo, base = 2)
+# Calculate per-gene median expression ranges
+gene_median_ranges <- apply(log_counts, 2, function(x) diff(range(x)))
+# Create a density plot of per-gene median expression ranges
+density_plot <- density(gene_median_ranges)
+plot(density_plot, main = "Density Plot of Per-Gene Median Expression Ranges")
+
+
+# Assignment 3
+# Question 2a
+
+gene_variability <- apply(count_hugo, 1, var)
+gene_ranking <- order(gene_variability, decreasing = TRUE)
+
+top_5000_variable_genes <- count_hugo[gene_ranking[1:5000], ]
+top_10_variable_genes <- count_hugo[gene_ranking[1:10], ]
+top_100_variable_genes <- count_hugo[gene_ranking[1:100], ]
+top_1000_variable_genes <- count_hugo[gene_ranking[1:1000], ]
+top_10000_variable_genes <- count_hugo[gene_ranking[1:10000], ]
+
+
+
+# Question 2b
+# K-Means
+
+install.packages("stats")
+install.packages("ggplot2")
+
+# Load libraries
+library(stats)
+library(ggplot2)
+
+# Assuming top_5000_variable_genes contains your data
+# If not, load your data into this variable.
+
+# Specify the number of clusters (you can change this value)
+num_clusters <- 3
+
+# Perform K-means clustering
+kmeans_result <- kmeans(top_5000_variable_genes, centers = num_clusters)
+
+# Add cluster assignments to your data
+top_5000_variable_genes$cluster <- kmeans_result$cluster
+
+# Create a cluster plot
+pca_result <- prcomp(top_5000_variable_genes[, -ncol(top_5000_variable_genes)], scale. = TRUE)
+
+# Create a data frame with the PCA results and cluster assignments
+pca_data <- data.frame(PC1 = pca_result$x[, 1], PC2 = pca_result$x[, 2], Cluster = top_5000_variable_genes$cluster)
+
+# Plot the data
+ggplot(data = pca_data, aes(x = PC1, y = PC2, color = factor(Cluster))) +
+  geom_point() +
+  labs(title = "K-means Clustering", x = "PC1", y = "PC2") +
+  scale_color_discrete(name = "Cluster")
+
+
+
+#Question 2b -	Hierarchical clustering (hclust)
+#Hclust
+# Calculate gene variability
+gene_variability <- apply(count_hugo, 1, var)
+
+# Rank genes by variability in descending order
+gene_ranking <- order(gene_variability, decreasing = TRUE)
+
+# Select the top 100 variable genes
+top_100_variable_genes <- count_hugo[gene_ranking[1:100], ]
+
+# Perform hierarchical clustering
+distance_matrix <- dist(top_100_variable_genes, method = "euclidean")
+hclust_result <- hclust(distance_matrix, method = "ward.D2")
+
+distance_matrix <- dist(top_100_variable_genes, method = "euclidean")
+hclust_result <- hclust(distance_matrix, method = "ward.D2")
+
+options(repr.plot.width = 10, repr.plot.height = 10)
+
+# Plot the rotated hierarchical clustering dendrogram with smaller font size
+par(cex = 0.5)  # Adjust the font size by changing cex (0.5 is an example size)
+
+# Plot the dendrogram
+plot(hclust_result, main = "Hierarchical Clustering Dendrogram for Top 100 Variable Genes", hang = -1)
+
+
+
+#Question 2b - PAM Clustering 
+install.packages("cluster")
+
+# Load the required library
+library(cluster)
+library(ggplot2)  # For creating the scatter plot
+
+# Perform PAM clustering
+# Specify the number of clusters (k) in the 'k' parameter
+k <- 5  # Desired number of clusters
+pam_result <- pam(top_5000_variable_genes, k)
+
+# Create a data frame with cluster assignments
+data_with_clusters <- data.frame(top_5000_variable_genes, Cluster = pam_result$clustering)
+
+# Create a scatter plot using two principal components (you can adjust this for your data)
+pca <- prcomp(top_5000_variable_genes)
+data_with_clusters <- cbind(data_with_clusters, as.data.frame(pca$x[,1:2]))
+
+# Create a scatter plot
+ggplot(data_with_clusters, aes(x = PC1, y = PC2, color = factor(Cluster))) +
+  geom_point() +
+  labs(title = "PAM Clustering Results") +
+  theme_minimal()
+
+
+# Print the clustering results
+#print(pam_result)
+
+# To access cluster assignments, you can use:
+#cluster_assignments <- pam_result$clustering
