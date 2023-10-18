@@ -160,3 +160,30 @@ ggplot(data = pca_data, aes(x = PC1, y = PC2, color = factor(Cluster))) +
   geom_point() +
   labs(title = "K-means Clustering", x = "Principal Component 1", y = "Principal Component 2") +
   scale_color_discrete(name = "Cluster")
+
+
+#Hclust
+# Calculate gene variability
+gene_variability <- apply(count_hugo, 1, var)
+
+# Rank genes by variability in descending order
+gene_ranking <- order(gene_variability, decreasing = TRUE)
+
+# Select the top 100 variable genes
+top_100_variable_genes <- count_hugo[gene_ranking[1:100], ]
+
+# Perform hierarchical clustering
+distance_matrix <- dist(top_100_variable_genes, method = "euclidean")
+hclust_result <- hclust(distance_matrix, method = "ward.D2")
+
+distance_matrix <- dist(top_100_variable_genes, method = "euclidean")
+hclust_result <- hclust(distance_matrix, method = "ward.D2")
+
+options(repr.plot.width = 10, repr.plot.height = 10)
+
+# Plot the rotated hierarchical clustering dendrogram with smaller font size
+par(cex = 0.5)  # Adjust the font size by changing cex (0.5 is an example size)
+
+# Plot the dendrogram
+plot(hclust_result, main = "Hierarchical Clustering Dendrogram for Top 100 Variable Genes", hang = -1)
+
