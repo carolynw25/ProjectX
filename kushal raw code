@@ -229,3 +229,51 @@ ggplot(data_with_clusters, aes(x = PC1, y = PC2, color = factor(Cluster))) +
 
 # To access cluster assignments, you can use:
 #cluster_assignments <- pam_result$clustering
+//////////////////////////////////////////////////////////////////////////
+
+# Calculate gene variability
+gene_variability <- apply(count_hugo, 1, var)
+
+# Rank genes by variability in descending order
+gene_ranking <- order(gene_variability, decreasing = TRUE)
+
+# Select the top 100 variable genes
+top_100_variable_genes <- count_hugo[gene_ranking[1:100], ]
+
+# Calculate gene variability
+gene_variability <- apply(count_hugo, 1, var)
+
+# Rank genes by variability in descending order
+gene_ranking <- order(gene_variability, decreasing = TRUE)
+
+# Select the top 100 variable genes
+top_100_variable_genes <- count_hugo[gene_ranking[1:100], ]
+
+# Perform hierarchical clustering
+distance_matrix <- dist(top_100_variable_genes, method = "euclidean")
+hclust_result <- hclust(distance_matrix, method = "ward.D2")
+
+distance_matrix <- dist(top_100_variable_genes, method = "euclidean")
+hclust_result <- hclust(distance_matrix, method = "ward.D2")
+
+options(repr.plot.width = 10, repr.plot.height = 10)
+
+# Plot the rotated hierarchical clustering dendrogram with smaller font size
+par(cex = 0.5)  # Adjust the font size by changing cex (0.5 is an example size)
+
+# Plot the dendrogram
+plot(hclust_result, main = "Hierarchical Clustering Dendrogram for Top 100 Variable Genes", hang = -1)
+# Cut the dendrogram at various heights to determine the number of clusters
+
+
+cluster_counts <- 1:30  # Set the range of cluster counts you want to explore
+result <- sapply(cluster_counts, function(k) length(unique(cutree(hclust_result, k))))
+
+# Plot the number of clusters as a function of k (number of clusters)
+plot(cluster_counts, result, type = "b", xlab = "Number of Clusters (k)", ylab = "Within-Cluster Sum of Squares (WCSS)")
+
+/////////////////////////////////////////////////////////////////////////////////////
+  
+
+
+
