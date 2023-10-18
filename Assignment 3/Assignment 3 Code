@@ -303,3 +303,26 @@ ggplot(data_with_clusters, aes(x = PC1, y = PC2, color = factor(Cluster))) +
 
 # To access cluster assignments, you can use:
 #cluster_assignments <- pam_result$clustering
+
+#Question 2eii
+#K MEANS
+install.packages("ggalluvial")
+library(ggplot2)
+library(ggalluvial)
+# Assuming you have cluster assignments for all gene sets
+cluster_assignments_5000 <- top_5000_variable_genes$cluster
+cluster_assignments_10 <- top_10_variable_genes$cluster
+cluster_assignments_100 <- top_100_variable_genes$cluster
+cluster_assignments_1000 <- top_1000_variable_genes$cluster
+cluster_assignments_10000 <- top_10000_variable_genes$cluster
+
+# Create a data frame
+alluvial_data <- data.frame(
+  GeneSet = factor(c("Top 5000", "Top 10", "Top 100", "Top 1000", "Top 10000")),
+  Cluster = factor(c(cluster_assignments_5000, cluster_assignments_10, cluster_assignments_100, cluster_assignments_1000, cluster_assignments_10000))
+)
+ggplot(alluvial_data, aes(axis1 = GeneSet, axis2 = Cluster)) +
+  geom_alluvium(aes(fill = Cluster)) +
+  geom_stratum() +
+  theme_void() +
+  labs(title = "Cluster Memberships for Different Gene Sets")
