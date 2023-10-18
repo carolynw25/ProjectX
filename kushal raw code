@@ -425,16 +425,23 @@ library(stats)
 dm_5000 <- dist(t(data_5000), method = "euclidean")
 hclust_dendogram <- hclust(dm_5000, method = "complete")
 hclust_clusterList <- cutree(hclust_dendogram, k)
+  # k-means
+k_results <- kmeans(t(data_5000), k, iter.max = 100)
+k_clusterList <- k_results$cluster
+  # PAM clustering
+library(cluster)
+pam_results <- pam(t(data_5000), k)
+pam_clusterList <- pam_results$clustering
 
 # Part 4
 chisqTable <- data.frame(matrix(nrow = 4, ncol = 2))
 colnames(chisqTable) <- c("Unadjusted", "Adjusted")
-rownames(chisqTable) <- c("CCP", "hclust", "M3", "M4") # CHANGE THESE TO METHOD NAMES
+rownames(chisqTable) <- c("CCP", "hclust", "k-means", "PAM") # CHANGE THESE TO METHOD NAMES
 
 chisqTable[1,1] <- chisq.test(metadata$stimulus, ccp_clusterList)$p.value
 chisqTable[2,1] <- chisq.test(metadata$stimulus, hclust_clusterList)$p.value
-chisqTable[3,1] <- chisq.test(metadata$stimulus, '''ADD METHODs LIST''')$p.value
-chisqTable[4,1] <- chisq.test(metadata$stimulus, '''ADD METHODs LIST''')$p.value
+chisqTable[3,1] <- chisq.test(metadata$stimulus, k_clusterList)$p.value
+chisqTable[4,1] <- chisq.test(metadata$stimulus, pam_clusterList)$p.value
 
 chisqTable[,2] <- p.adjust(chisqTable[,1])
 
