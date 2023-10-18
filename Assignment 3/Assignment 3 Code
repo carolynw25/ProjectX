@@ -165,7 +165,7 @@ pca_data_5000 <- data.frame(PC1 = pca_result_5000$x[, 1], PC2 = pca_result$x[, 2
 # Plot the data
 ggplot(data = pca_data_5000, aes(x = PC1, y = PC2, color = factor(Cluster))) +
   geom_point() +
-  labs(title = "K-means Clustering", x = "PC1", y = "PC2") +
+  labs(title = "K-means Clustering (Top 5000)", x = "PC1", y = "PC2") +
   scale_color_discrete(name = "Cluster")
 
 # Perform K-means clustering on top_10_variable_genes
@@ -175,15 +175,15 @@ kmeans_result <- kmeans(top_10_variable_genes, centers = num_clusters)
 top_10_variable_genes$cluster <- kmeans_result$cluster
 
 # Create a cluster plot for top_1000_variable_genes
-pca_result_10 <- prcomp(top_10_variable_genes[, -ncol(top_1000_variable_genes)], scale. = TRUE)
+pca_result_10 <- prcomp(top_10_variable_genes[, -ncol(top_10_variable_genes)], scale. = TRUE)
 
 # Create a data frame with the PCA results and cluster assignments
-pca_data_10 <- data.frame(PC1 = pca_result_10$x[, 1], PC2 = pca_result$x[, 2], Cluster = top_1000_variable_genes$cluster)
+pca_data_10 <- data.frame(PC1 = pca_result_10$x[, 1], PC2 = pca_result$x[, 2], Cluster = top_10_variable_genes$cluster)
 
 # Plot the data for top_1000_variable_genes
 ggplot(data = pca_data_10, aes(x = PC1, y = PC2, color = factor(Cluster))) +
   geom_point() +
-  labs(title = "K-means Clustering (Top 1000)", x = "PC1", y = "PC2") +
+  labs(title = "K-means Clustering (Top 10)", x = "PC1", y = "PC2") +
   scale_color_discrete(name = "Cluster")
 #cluster_assignments <- pam_result$clustering
 
@@ -194,15 +194,15 @@ kmeans_result <- kmeans(top_100_variable_genes, centers = num_clusters)
 top_100_variable_genes$cluster <- kmeans_result$cluster
 
 # Create a cluster plot for top_1000_variable_genes
-pca_result_100 <- prcomp(top_100_variable_genes[, -ncol(top_1000_variable_genes)], scale. = TRUE)
+pca_result_100 <- prcomp(top_100_variable_genes[, -ncol(top_100_variable_genes)], scale. = TRUE)
 
 # Create a data frame with the PCA results and cluster assignments
-pca_data_100 <- data.frame(PC1 = pca_result_100$x[, 1], PC2 = pca_result$x[, 2], Cluster = top_1000_variable_genes$cluster)
+pca_data_100 <- data.frame(PC1 = pca_result_100$x[, 1], PC2 = pca_result$x[, 2], Cluster = top_100_variable_genes$cluster)
 
 # Plot the data for top_1000_variable_genes
 ggplot(data = pca_data_100, aes(x = PC1, y = PC2, color = factor(Cluster))) +
   geom_point() +
-  labs(title = "K-means Clustering (Top 1000)", x = "PC1", y = "PC2") +
+  labs(title = "K-means Clustering (Top 100)", x = "PC1", y = "PC2") +
   scale_color_discrete(name = "Cluster")
 #cluster_assignments <- pam_result$clustering
 
@@ -221,7 +221,7 @@ pca_data_1000 <- data.frame(PC1 = pca_result_1000$x[, 1], PC2 = pca_result$x[, 2
 # Plot the data for top_1000_variable_genes
 ggplot(data = pca_data_1000, aes(x = PC1, y = PC2, color = factor(Cluster))) +
   geom_point() +
-  labs(title = "K-means Clustering (Top 1000)", x = "PC1", y = "PC2") +
+  labs(title = "K-means Clustering (Top 1,000)", x = "PC1", y = "PC2") +
   scale_color_discrete(name = "Cluster")
 #cluster_assignments <- pam_result$clustering
 
