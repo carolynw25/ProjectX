@@ -457,23 +457,36 @@ k_clusterList_10 <- kmeans(t(data_10), k, iter.max = 100)$cluster
 k_clusterList_100 <- kmeans(t(data_100), k, iter.max = 100)$cluster
 k_clusterList_1000 <- kmeans(t(data_1000), k, iter.max = 100)$cluster
 k_clusterList_10000 <- kmeans(t(data_10000), k, iter.max = 100)$cluster
-  # PAM clustering
+  # PAM
 pam_clusterList_10 <- pam(t(data_10), k)$clustering
 pam_clusterList_100 <- pam(t(data_100), k)$clustering
 pam_clusterList_1000 <- pam(t(data_1000), k)$clustering
 pam_clusterList_10000 <- pam(t(data_10000), k)$clustering
 # Part 3a
+  # Update metadata
+metadata <- metadata %>%
+  dplyr::mutate(mutation_status = dplyr::case_when(
+    stringr::str_detect(stimulus, "brain-derived neurotrophic factor") ~ "treated",
+    stringr::str_detect(stimulus, "TrkB agonist antibody ZEB85") ~ "treated",
+    stringr::str_detect(stimulus, "neurotrophin-4") ~ "treated",
+    stringr::str_detect(stimulus, "none") ~ "reference"
+  ))
+  # Create heatmap
+column_ha <- HeatmapAnnotation(sample = metadata$mutation_status, CCP = ccp_clusterList, hclust = hclust_clusterList, k_means = k_clusterList, PAM = pam_clusterList)
+Heatmap(data_5000, top_annotation = column_ha, column_names_gp = grid::gpar(fontsize = 1), row_names_gp = grid::gpar(fontsize = 1))
 # Part 4a
+  # Initialize table
 chisqTable <- data.frame(matrix(nrow = 4, ncol = 2))
 colnames(chisqTable) <- c("Unadjusted", "Adjusted")
-rownames(chisqTable) <- c("CCP", "hclust", "k-means", "PAM") # CHANGE THESE TO METHOD NAMES
-
-chisqTable[1,1] <- chisq.test(metadata$stimulus, ccp_clusterList)$p.value
-chisqTable[2,1] <- chisq.test(metadata$stimulus, hclust_clusterList)$p.value
-chisqTable[3,1] <- chisq.test(metadata$stimulus, k_clusterList)$p.value
-chisqTable[4,1] <- chisq.test(metadata$stimulus, pam_clusterList)$p.value
-
+rownames(chisqTable) <- c("CCP", "hclust", "k-means", "PAM")
+  # Run unadjusted tests
+chisqTable[1,1] <- chisq.test(metadata$mutation_status, ccp_clusterList)$p.value
+chisqTable[2,1] <- chisq.test(metadata$mutation_status, hclust_clusterList)$p.value
+chisqTable[3,1] <- chisq.test(metadata$mutation_status, k_clusterList)$p.value
+chisqTable[4,1] <- chisq.test(metadata$mutation_status, pam_clusterList)$p.value
+  # Calculate adjusted p values
 chisqTable[,2] <- p.adjust(chisqTable[,1])
+
 
 
 #SAVE INCASE BUT DOESN'T WORK
