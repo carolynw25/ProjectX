@@ -460,3 +460,41 @@ plot <- ggplot(alluvial_data, aes(axis1 = GeneSet, axis2 = Cluster)) +
 # Save the plot to a file
 ggsave("ccp_alluvial_diagram.png", plot)
 
+# PAM
+# Load the required libraries
+library(cluster)
+library(ggplot2)
+library(ggalluvial)
+
+# Function to perform PAM clustering and get cluster assignments
+perform_pam_clustering <- function(data, k) {
+  pam_result <- pam(data, k)
+  return(pam_result$clustering)
+}
+
+# Define the number of clusters (k)
+k <- 5  # Desired number of clusters
+
+# Perform PAM clustering and get cluster assignments for different gene sets
+cluster_assignments_5000 <- perform_pam_clustering(top_5000_variable_genes, k)
+cluster_assignments_10 <- perform_pam_clustering(top_10_variable_genes, k)
+cluster_assignments_100 <- perform_pam_clustering(top_100_variable_genes, k)
+cluster_assignments_1000 <- perform_pam_clustering(top_1000_variable_genes, k)
+cluster_assignments_10000 <- perform_pam_clustering(top_10000_variable_genes, k)
+
+# Create a data frame with cluster assignments
+alluvial_data <- data.frame(
+  GeneSet = factor(c("Top 5000", "Top 10", "Top 100", "Top 1000", "Top 10000")),
+  Cluster = factor(c(cluster_assignments_5000, cluster_assignments_10, cluster_assignments_100, cluster_assignments_1000, cluster_assignments_10000))
+)
+
+# Create the alluvial diagram
+plot <- ggplot(alluvial_data, aes(axis1 = GeneSet, axis2 = Cluster)) +
+  geom_alluvium(aes(fill = Cluster)) +
+  geom_stratum() +
+  labs(title = "Cluster Memberships for Different Gene Sets") +
+  theme_void()
+
+# Save the alluvial diagram to an image (e.g., PNG)
+ggsave("alluvial_diagram.png", plot, width = 10, height = 6, units = "in")
+
