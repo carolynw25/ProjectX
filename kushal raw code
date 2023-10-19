@@ -417,8 +417,7 @@ k <- 10
   # CCP
 BiocManager::install("ConsensusClusterPlus")
 library(ConsensusClusterPlus)
-title <- tempdir()
-ccp_results <- ConsensusClusterPlus(data_5000, maxK=k, reps=100, pItem=0.8, pFeature=1, title = title, distance="pearson", plot="png")
+ccp_results <- ConsensusClusterPlus(data_5000, maxK=k, reps=100, pItem=0.8, pFeature=1, distance="pearson", plot="png")
 ccp_clusterList <- ccp_results[[10]][["consensusClass"]]
   # hclust
 library(stats)
@@ -432,8 +431,39 @@ k_clusterList <- k_results$cluster
 library(cluster)
 pam_results <- pam(t(data_5000), k)
 pam_clusterList <- pam_results$clustering
-
-# Part 4
+# Part 2d
+# Part 2e
+  # Creating the appropriate matrices
+data_10<-data[rev(order(mads))[1:10],]
+data_100<-data[rev(order(mads))[1:100],]
+data_1000<-data[rev(order(mads))[1:1000],]
+data_10000<-data[rev(order(mads))[1:10000],]
+  # CCP
+ccp_clusterList_10 <- ConsensusClusterPlus(data_10, maxK=k, reps=100, pItem=0.8, pFeature=1, title = title, distance="pearson", plot="png")[[10]][["consensusClass"]]
+ccp_clusterList_100 <- ConsensusClusterPlus(data_100, maxK=k, reps=100, pItem=0.8, pFeature=1, title = title, distance="pearson", plot="png")[[10]][["consensusClass"]]
+ccp_clusterList_1000 <- ConsensusClusterPlus(data_1000, maxK=k, reps=100, pItem=0.8, pFeature=1, title = title, distance="pearson", plot="png")[[10]][["consensusClass"]]
+ccp_clusterList_10000 <- ConsensusClusterPlus(data_10000, maxK=k, reps=100, pItem=0.8, pFeature=1, title = title, distance="pearson", plot="png")[[10]][["consensusClass"]]
+  # hclust
+dm_10 <- dist(t(data_10), method = "euclidean")
+dm_100 <- dist(t(data_100), method = "euclidean")
+dm_1000 <- dist(t(data_1000), method = "euclidean")
+dm_10000 <- dist(t(data_10000), method = "euclidean")
+hclust_clusterList_10 <- cutree(hclust(dm_10, method = "complete"), k)
+hclust_clusterList_100 <- cutree(hclust(dm_100, method = "complete"), k)
+hclust_clusterList_1000 <- cutree(hclust(dm_1000, method = "complete"), k)
+hclust_clusterList_10000 <- cutree(hclust(dm_10000, method = "complete"), k)
+  # k-means
+k_clusterList_10 <- kmeans(t(data_10), k, iter.max = 100)$cluster
+k_clusterList_100 <- kmeans(t(data_100), k, iter.max = 100)$cluster
+k_clusterList_1000 <- kmeans(t(data_1000), k, iter.max = 100)$cluster
+k_clusterList_10000 <- kmeans(t(data_10000), k, iter.max = 100)$cluster
+  # PAM clustering
+pam_clusterList_10 <- pam(t(data_10), k)$clustering
+pam_clusterList_100 <- pam(t(data_100), k)$clustering
+pam_clusterList_1000 <- pam(t(data_1000), k)$clustering
+pam_clusterList_10000 <- pam(t(data_10000), k)$clustering
+# Part 3a
+# Part 4a
 chisqTable <- data.frame(matrix(nrow = 4, ncol = 2))
 colnames(chisqTable) <- c("Unadjusted", "Adjusted")
 rownames(chisqTable) <- c("CCP", "hclust", "k-means", "PAM") # CHANGE THESE TO METHOD NAMES
@@ -444,6 +474,7 @@ chisqTable[3,1] <- chisq.test(metadata$stimulus, k_clusterList)$p.value
 chisqTable[4,1] <- chisq.test(metadata$stimulus, pam_clusterList)$p.value
 
 chisqTable[,2] <- p.adjust(chisqTable[,1])
+
 
 #SAVE INCASE BUT DOESN'T WORK
 
