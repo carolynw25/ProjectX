@@ -10,138 +10,90 @@ library(org.Hs.eg.db)
 # We will need this so we can use the pipe: %>%
 library(magrittr)
 
+ # Load Data
 data_dir <- file.path("data", "ERP109789")
-
-results_dir<-file.path("results")
-
 data_file <- file.path(data_dir, "ERP109789.tsv")
-
-metadata_file <- file.path(data_dir, "metadata_ERP109789.tsv")
-
 file.exists(data_file)
+data <- readr::read_tsv(data_file)
 
+  # Load Metadata
+metadata_file <- file.path(data_dir, "metadata_ERP109789.tsv")
 file.exists(metadata_file)
-
 metadata <- readr::read_tsv(metadata_file)
-
-expression_df <- readr::read_tsv(data_file) %>%
-  # Tuck away the Gene ID column as row names
-  tibble::column_to_rownames("Gene")
-
-expression_df <- expression_df %>%
-  dplyr::select(metadata$refinebio_accession_code)
-
-all.equal(colnames(expression_df), metadata$refinebio_accession_code)
-
-expression_df <- expression_df %>%
-  tibble::rownames_to_column("Gene")
-
-count_hugo <- mapIds(
-  org.Hs.eg.db, # Replace with annotation package for your organism
-  keys = expression_df$Gene,
-  keytype = "ENSEMBL", # Replace with the type of gene identifiers in your data
-  column = "SYMBOL", # The type of gene identifiers you would like to map to
-  multiVals = "first"
-)
-
-head(count_hugo)
-
-
-# Question 1
-
-# Moved from Earlier
-# Read in data TSV file & Make the data in the order of the metadata
-expression_df <- readr::read_tsv(data_file) %>%
-  tibble::column_to_rownames("Gene") %>% dplyr::select(metadata$refinebio_accession_code)
-
-# Check if this is in the same order
-all.equal(colnames(expression_df), metadata$refinebio_accession_code)
-
-head(metadata$refinebio_title)
-
-# Simplify Condition to be Treated vs Reference instead of multiple treatments
-metadata <- metadata %>%
-  dplyr::mutate(mutation_status = dplyr::case_when(
-    stringr::str_detect(stimulus, "brain-derived neurotrophic factor") ~ "treated",
-    stringr::str_detect(stimulus, "TrkB agonist antibody ZEB85") ~ "treated",
-    stringr::str_detect(stimulus, "neurotrophin-4") ~ "treated",
-    stringr::str_detect(stimulus, "none") ~ "reference"
-  ))
-
-# Filter rows with less than 10 counts total in all samples
-filtered_expression_df <- expression_df %>%
-  dplyr::filter(rowSums(.) >= 10)
-
-gene_matrix <- round(filtered_expression_df)
-
-metadata <- metadata %>%
-  dplyr::mutate(
-    # Here we define the values our factor variable can have and their order.
-    mutation_status = factor(mutation_status, levels = c("reference", "treated"))
-  )
-
-# Make rowname column temporarily to do HUGO conversion
-temp <- tibble::rownames_to_column(gene_matrix, var = "Gene")
-
-
-# Change to HUGO names
-count_hugo <- data.frame("HUGO" = mapIds(
-  org.Hs.eg.db, # Replace with annotation package for your organism
-  keys = temp$Gene,
-  keytype = "ENSEMBL", # Replace with the type of gene identifiers in your data
-  column = "SYMBOL", # The type of gene identifiers you would like to map to
-  multiVals = "first"
-),temp)
-
-# Remove Duplicates
-count_hugo <- count_hugo[!duplicated(count_hugo$HUGO),]
-
-# Remove extra columns and make HUGO genes new rownames
-count_hugo <- dplyr::select(count_hugo, -Gene)
-count_hugo <- tibble::remove_rownames(count_hugo)
-#removes N/A points
-count_hugo <- na.omit(count_hugo)
-#Makes rownames the HUGO names
-count_hugo <- tibble::column_to_rownames(count_hugo,var = "HUGO")
-
-
-# Counts File after all of the preprocessing (use for TSNE, Density Plot, Heatmap, and Differential Expression)
-# write.csv(count_hugo, file="counts.csv")
-
-
-# Load the data
-data <- read.table(data_file, header = TRUE, sep = "\t")
-# Log-scale the data (assuming gene expression values start from column 2)
-log_counts <- log(count_hugo, base = 2)
-# Calculate per-gene median expression ranges
-gene_median_ranges <- apply(log_counts, 2, function(x) diff(range(x)))
-# Create a density plot of per-gene median expression ranges
-density_plot <- density(gene_median_ranges)
-plot(density_plot, main = "Density Plot of Per-Gene Median Expression Ranges")
+# Part 2a
+geneNames <- data$Gene
+data$Gene <- NULL
+rownames(data) <- geneNames
+data <- data.matrix(data)
+mads <- apply(data,1,mad)
+data_5000<-data[rev(order(mads))[1:5000],]
 
 ######################################################################################################
 #
 # Assignment 3
 # Question 2a
+geneNames <- data$Gene
+data$Gene <- NULL
+rownames(data) <- geneNames
+data <- data.matrix(data)
+mads <- apply(data,1,mad)
+data_5000<-data[rev(order(mads))[1:5000],]
+# Part 2b
+  # Choose k value
+k <- 10
+  # CCP
+BiocManager::install("ConsensusClusterPlus")
+library(ConsensusClusterPlus)
+ccp_results <- ConsensusClusterPlus(data_5000, maxK=k, reps=100, pItem=0.8, pFeature=1, distance="pearson", plot="png")
+ccp_clusterList <- ccp_results[[10]][["consensusClass"]]
+  # hclust
+library(stats)
+dm_5000 <- dist(t(data_5000), method = "euclidean")
+hclust_dendogram <- hclust(dm_5000, method = "complete")
+hclust_clusterList <- cutree(hclust_dendogram, k)
+  # k-means
+k_results <- kmeans(t(data_5000), k, iter.max = 100)
+k_clusterList <- k_results$cluster
+  # PAM clustering
+library(cluster)
+pam_results <- pam(t(data_5000), k)
+pam_clusterList <- pam_results$clustering
+# Part 2d
+# Part 2e
+  # Creating the appropriate matrices
+data_10<-data[rev(order(mads))[1:10],]
+data_100<-data[rev(order(mads))[1:100],]
+data_1000<-data[rev(order(mads))[1:1000],]
+data_10000<-data[rev(order(mads))[1:10000],]
+  # CCP
+ccp_clusterList_10 <- ConsensusClusterPlus(data_10, maxK=k, reps=100, pItem=0.8, pFeature=1, title = title, distance="pearson", plot="png")[[10]][["consensusClass"]]
+ccp_clusterList_100 <- ConsensusClusterPlus(data_100, maxK=k, reps=100, pItem=0.8, pFeature=1, title = title, distance="pearson", plot="png")[[10]][["consensusClass"]]
+ccp_clusterList_1000 <- ConsensusClusterPlus(data_1000, maxK=k, reps=100, pItem=0.8, pFeature=1, title = title, distance="pearson", plot="png")[[10]][["consensusClass"]]
+ccp_clusterList_10000 <- ConsensusClusterPlus(data_10000, maxK=k, reps=100, pItem=0.8, pFeature=1, title = title, distance="pearson", plot="png")[[10]][["consensusClass"]]
+  # hclust
+dm_10 <- dist(t(data_10), method = "euclidean")
+dm_100 <- dist(t(data_100), method = "euclidean")
+dm_1000 <- dist(t(data_1000), method = "euclidean")
+dm_10000 <- dist(t(data_10000), method = "euclidean")
+hclust_clusterList_10 <- cutree(hclust(dm_10, method = "complete"), k)
+hclust_clusterList_100 <- cutree(hclust(dm_100, method = "complete"), k)
+hclust_clusterList_1000 <- cutree(hclust(dm_1000, method = "complete"), k)
+hclust_clusterList_10000 <- cutree(hclust(dm_10000, method = "complete"), k)
+  # k-means
+k_clusterList_10 <- kmeans(t(data_10), k, iter.max = 100)$cluster
+k_clusterList_100 <- kmeans(t(data_100), k, iter.max = 100)$cluster
+k_clusterList_1000 <- kmeans(t(data_1000), k, iter.max = 100)$cluster
+k_clusterList_10000 <- kmeans(t(data_10000), k, iter.max = 100)$cluster
+  # PAM
+pam_clusterList_10 <- pam(t(data_10), k)$clustering
+pam_clusterList_100 <- pam(t(data_100), k)$clustering
+pam_clusterList_1000 <- pam(t(data_1000), k)$clustering
+pam_clusterList_10000 <- pam(t(data_10000), k)$clustering
 
-# Calculate gene variability
-gene_variability <- apply(count_hugo, 1, var)
-# Rank genes by variability in descending order
-gene_ranking <- order(gene_variability, decreasing = TRUE)
 
-# Select the top 5000 variable genes
-top_5000_variable_genes <- count_hugo[gene_ranking[1:5000], ]
-
-top_10_variable_genes <- count_hugo[gene_ranking[1:10], ]
-top_100_variable_genes <- count_hugo[gene_ranking[1:100], ]
-top_1000_variable_genes <- count_hugo[gene_ranking[1:1000], ]
-top_10000_variable_genes <- count_hugo[gene_ranking[1:10000], ]
-
-
-
+###### Extra?
 # Question 2b
 # K-Means
-
 install.packages("stats")
 install.packages("ggplot2")
 
@@ -297,7 +249,6 @@ par(cex = 0.5)  # Adjust the font size
 plot(hclust_result_10000, main = "Hierarchical Clustering Dendrogram for Top 10000 Variable Genes", hang = -1)
 
 
-
 #Question 2b - PAM Clustering 
 install.packages("cluster")
 
@@ -391,6 +342,8 @@ ggplot(data_with_clusters, aes(x = PC1, y = PC2, color = factor(Cluster))) +
 # To access cluster assignments, you can use:
 #cluster_assignments <- pam_result$clustering
 
+######################################################################################################
+#
 #Question 2eii
 #K MEANS
 install.packages("ggalluvial")
