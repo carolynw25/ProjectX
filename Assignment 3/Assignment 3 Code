@@ -432,3 +432,31 @@ ggplot(alluvial_data, aes(axis1 = GeneSet, axis2 = Cluster)) +
   labs(title = "Cluster Memberships for Different Gene Sets")
 
 
+#CONSESUS
+# Assuming you have the CCP cluster assignments for different gene sets
+# Replace these with the actual cluster assignments for CCP
+ccp_cluster_assignments_5000 <- ccp_clusterList
+ccp_cluster_assignments_10 <- ccp_clusterList_10
+ccp_cluster_assignments_100 <- ccp_clusterList_100
+ccp_cluster_assignments_1000 <- ccp_clusterList_1000
+ccp_cluster_assignments_10000 <- ccp_clusterList_10000
+
+# Create a data frame for the alluvial diagram
+alluvial_data <- data.frame(
+  GeneSet = factor(c("Top 5000", "Top 10", "Top 100", "Top 1000", "Top 10000")),
+  Cluster = factor(c(ccp_cluster_assignments_5000, ccp_cluster_assignments_10, ccp_cluster_assignments_100, ccp_cluster_assignments_1000, ccp_cluster_assignments_10000))
+)
+
+# Load ggplot2 and ggalluvial
+library(ggplot2)
+library(ggalluvial)
+
+# Create the alluvial diagram
+plot <- ggplot(alluvial_data, aes(axis1 = GeneSet, axis2 = Cluster)) +
+  geom_alluvium(aes(fill = Cluster)) +
+  geom_stratum() +
+  labs(title = "Cluster Memberships for Different Gene Sets")
+
+# Save the plot to a file
+ggsave("ccp_alluvial_diagram.png", plot)
+
