@@ -1,0 +1,747 @@
+# Question 1
+if (!("org.Hs.eg.db" %in% installed.packages())) {
+  # Install this package if it isn't installed yet
+  BiocManager::install("org.Hs.eg.db", update = FALSE)
+}
+
+# Attach the library
+library(org.Hs.eg.db)
+
+# We will need this so we can use the pipe: %>%
+library(magrittr)
+
+data_dir <- file.path("data", "ERP109789")
+
+results_dir<-file.path("results")
+
+data_file <- file.path(data_dir, "ERP109789.tsv")
+
+metadata_file <- file.path(data_dir, "metadata_ERP109789.tsv")
+
+file.exists(data_file)
+
+file.exists(metadata_file)
+
+metadata <- readr::read_tsv(metadata_file)
+
+expression_df <- readr::read_tsv(data_file) %>%
+  # Tuck away the Gene ID column as row names
+  tibble::column_to_rownames("Gene")
+
+expression_df <- expression_df %>%
+  dplyr::select(metadata$refinebio_accession_code)
+
+all.equal(colnames(expression_df), metadata$refinebio_accession_code)
+
+expression_df <- expression_df %>%
+  tibble::rownames_to_column("Gene")
+
+count_hugo <- mapIds(
+  org.Hs.eg.db, # Replace with annotation package for your organism
+  keys = expression_df$Gene,
+  keytype = "ENSEMBL", # Replace with the type of gene identifiers in your data
+  column = "SYMBOL", # The type of gene identifiers you would like to map to
+  multiVals = "first"
+)
+
+head(count_hugo)
+
+
+# Question 1
+
+# Moved from Earlier
+# Read in data TSV file & Make the data in the order of the metadata
+expression_df <- readr::read_tsv(data_file) %>%
+  tibble::column_to_rownames("Gene") %>% dplyr::select(metadata$refinebio_accession_code)
+
+# Check if this is in the same order
+all.equal(colnames(expression_df), metadata$refinebio_accession_code)
+
+head(metadata$refinebio_title)
+
+# Simplify Condition to be Treated vs Reference instead of multiple treatments
+metadata <- metadata %>%
+  dplyr::mutate(mutation_status = dplyr::case_when(
+    stringr::str_detect(stimulus, "brain-derived neurotrophic factor") ~ "treated",
+    stringr::str_detect(stimulus, "TrkB agonist antibody ZEB85") ~ "treated",
+    stringr::str_detect(stimulus, "neurotrophin-4") ~ "treated",
+    stringr::str_detect(stimulus, "none") ~ "reference"
+  ))
+
+# Filter rows with less than 10 counts total in all samples
+filtered_expression_df <- expression_df %>%
+  dplyr::filter(rowSums(.) >= 10)
+
+gene_matrix <- round(filtered_expression_df)
+
+metadata <- metadata %>%
+  dplyr::mutate(
+    # Here we define the values our factor variable can have and their order.
+    mutation_status = factor(mutation_status, levels = c("reference", "treated"))
+  )
+
+# Make rowname column temporarily to do HUGO conversion
+temp <- tibble::rownames_to_column(gene_matrix, var = "Gene")
+
+
+# Change to HUGO names
+count_hugo <- data.frame("HUGO" = mapIds(
+  org.Hs.eg.db, # Replace with annotation package for your organism
+  keys = temp$Gene,
+  keytype = "ENSEMBL", # Replace with the type of gene identifiers in your data
+  column = "SYMBOL", # The type of gene identifiers you would like to map to
+  multiVals = "first"
+),temp)
+
+# Remove Duplicates
+count_hugo <- count_hugo[!duplicated(count_hugo$HUGO),]
+
+# Remove extra columns and make HUGO genes new rownames
+count_hugo <- dplyr::select(count_hugo, -Gene)
+count_hugo <- tibble::remove_rownames(count_hugo)
+#removes N/A points
+count_hugo <- na.omit(count_hugo)
+#Makes rownames the HUGO names
+count_hugo <- tibble::column_to_rownames(count_hugo,var = "HUGO")
+
+
+# Counts File after all of the preprocessing (use for TSNE, Density Plot, Heatmap, and Differential Expression)
+# write.csv(count_hugo, file="counts.csv")
+
+
+# Load the data
+data <- read.table(data_file, header = TRUE, sep = "\t")
+# Log-scale the data (assuming gene expression values start from column 2)
+log_counts <- log(count_hugo, base = 2)
+# Calculate per-gene median expression ranges
+gene_median_ranges <- apply(log_counts, 2, function(x) diff(range(x)))
+# Create a density plot of per-gene median expression ranges
+density_plot <- density(gene_median_ranges)
+plot(density_plot, main = "Density Plot of Per-Gene Median Expression Ranges")
+
+
+file.exists(data_file)
+data <- readr::read_tsv(data_file)
+
+geneNames <- data$Gene
+data$Gene <- NULL
+rownames(data) <- geneNames
+data <- data.matrix(data)
+
+
+# Assignment 3
+# Question 2a
+
+gene_variability <- apply(count_hugo, 1, var)
+gene_ranking <- order(gene_variability, decreasing = TRUE)
+
+top_5000_variable_genes <- count_hugo[gene_ranking[1:5000], ]
+top_10_variable_genes <- count_hugo[gene_ranking[1:10], ]
+top_100_variable_genes <- count_hugo[gene_ranking[1:100], ]
+top_1000_variable_genes <- count_hugo[gene_ranking[1:1000], ]
+top_10000_variable_genes <- count_hugo[gene_ranking[1:10000], ]
+
+
+
+# Question 2b
+# Question 2a
+
+gene_variability <- apply(count_hugo, 1, var)
+gene_ranking <- order(gene_variability, decreasing = TRUE)
+
+top_5000_variable_genes <- count_hugo[gene_ranking[1:5000], ]
+top_10_variable_genes <- count_hugo[gene_ranking[1:10], ]
+top_100_variable_genes <- count_hugo[gene_ranking[1:100], ]
+top_1000_variable_genes <- count_hugo[gene_ranking[1:1000], ]
+top_10000_variable_genes <- count_hugo[gene_ranking[1:10000], ]
+
+
+
+# Question 2b
+# K-Means
+# K-Means
+
+install.packages("stats")
+install.packages("ggplot2")
+
+# Load libraries
+library(stats)
+library(ggplot2)
+
+# Assuming top_5000_variable_genes contains your data
+# If not, load your data into this variable.
+
+# Specify the number of clusters (you can change this value)
+num_clusters <- 3
+
+# Perform K-means clustering
+top_5000_variable_genes[is.na(top_5000_variable_genes)] <- mean(top_5000_variable_genes, na.rm = TRUE)
+# Replace Inf with a finite value (e.g., 0)
+top_5000_variable_genes[is.infinite(top_5000_variable_genes)] <- 0
+any(is.na(top_5000_variable_genes))  # Check for NAs
+any(is.infinite(top_5000_variable_genes))  # Check for Infs
+
+kmeans_result_5000 <- kmeans(top_5000_variable_genes, centers = num_clusters)
+
+# Add cluster assignments to your data
+top_5000_variable_genes$cluster <- kmeans_result_5000$cluster
+
+# Create a cluster plot
+pca_result_5000 <- prcomp(top_5000_variable_genes[, -ncol(top_5000_variable_genes)], scale. = TRUE)
+
+# Create a data frame with the PCA results and cluster assignments
+pca_data_5000 <- data.frame(PC1 = pca_result_5000$x[, 1], PC2 = pca_result$x[, 2], Cluster = top_5000_variable_genes$cluster)
+
+# Plot the data
+ggplot(data = pca_data_5000, aes(x = PC1, y = PC2, color = factor(Cluster))) +
+  geom_point() +
+  labs(title = "K-means Clustering (Top 5000)", x = "PC1", y = "PC2") +
+  scale_color_discrete(name = "Cluster")
+
+# Perform K-means clustering on top_10_variable_genes
+kmeans_result_10 <- kmeans(top_10_variable_genes, centers = num_clusters)
+
+# Add cluster assignments to your data
+top_10_variable_genes$cluster <- kmeans_result_10$cluster
+
+# Create a cluster plot for top_1000_variable_genes
+pca_result_10 <- prcomp(top_10_variable_genes[, -ncol(top_10_variable_genes)], scale. = TRUE)
+
+# Create a data frame with the PCA results and cluster assignments
+pca_data_10 <- data.frame(PC1 = pca_result_10$x[, 1], PC2 = pca_result$x[, 2], Cluster = top_10_variable_genes$cluster)
+
+# Plot the data for top_1000_variable_genes
+ggplot(data = pca_data_10, aes(x = PC1, y = PC2, color = factor(Cluster))) +
+  geom_point() +
+  labs(title = "K-means Clustering (Top 10)", x = "PC1", y = "PC2") +
+  scale_color_discrete(name = "Cluster")
+#cluster_assignments <- pam_result$clustering
+
+# Perform K-means clustering on top_100_variable_genes
+kmeans_result_100 <- kmeans(top_100_variable_genes, centers = num_clusters)
+
+# Add cluster assignments to your data
+top_100_variable_genes$cluster <- kmeans_result_100$cluster
+
+# Create a cluster plot for top_1000_variable_genes
+pca_result_100 <- prcomp(top_100_variable_genes[, -ncol(top_100_variable_genes)], scale. = TRUE)
+
+# Create a data frame with the PCA results and cluster assignments
+pca_data_100 <- data.frame(PC1 = pca_result_100$x[, 1], PC2 = pca_result$x[, 2], Cluster = top_100_variable_genes$cluster)
+
+# Plot the data for top_1000_variable_genes
+ggplot(data = pca_data_100, aes(x = PC1, y = PC2, color = factor(Cluster))) +
+  geom_point() +
+  labs(title = "K-means Clustering (Top 100)", x = "PC1", y = "PC2") +
+  scale_color_discrete(name = "Cluster")
+#cluster_assignments <- pam_result$clustering
+
+# Perform K-means clustering on top_1000_variable_genes
+kmeans_result_1000 <- kmeans(top_1000_variable_genes, centers = num_clusters)
+
+# Add cluster assignments to your data
+top_1000_variable_genes$cluster <- kmeans_result_1000$cluster
+
+# Create a cluster plot for top_1000_variable_genes
+pca_result_1000 <- prcomp(top_1000_variable_genes[, -ncol(top_1000_variable_genes)], scale. = TRUE)
+
+# Create a data frame with the PCA results and cluster assignments
+pca_data_1000 <- data.frame(PC1 = pca_result_1000$x[, 1], PC2 = pca_result$x[, 2], Cluster = top_1000_variable_genes$cluster)
+
+# Plot the data for top_1000_variable_genes
+ggplot(data = pca_data_1000, aes(x = PC1, y = PC2, color = factor(Cluster))) +
+  geom_point() +
+  labs(title = "K-means Clustering (Top 1,000)", x = "PC1", y = "PC2") +
+  scale_color_discrete(name = "Cluster")
+#cluster_assignments <- pam_result$clustering
+
+# Perform K-means clustering on top_10000_variable_genes
+kmeans_result_10000 <- kmeans(top_10000_variable_genes, centers = num_clusters)
+
+# Add cluster assignments to your data
+top_10000_variable_genes$cluster <- kmeans_result_10000$cluster
+
+# Create a cluster plot for top_10000_variable_genes
+pca_result_10000 <- prcomp(top_10000_variable_genes[, -ncol(top_10000_variable_genes)], scale. = TRUE)
+
+# Create a data frame with the PCA results and cluster assignments
+pca_data_10000 <- data.frame(PC1 = pca_result_10000$x[, 1], PC2 = pca_result$x[, 2], Cluster = top_10000_variable_genes$cluster)
+
+# Plot the data for top_10000_variable_genes
+ggplot(data = pca_data_10000, aes(x = PC1, y = PC2, color = factor(Cluster))) +
+  geom_point() +
+  labs(title = "K-means Clustering (Top 10,000)", x = "PC1", y = "PC2") +
+  scale_color_discrete(name = "Cluster")
+
+#Question 2b -	Hierarchical clustering (hclust)
+
+#top 10 hclustering
+top_10_variable_genes <- count_hugo[gene_ranking[1:10], ]
+distance_matrix <- dist(top_10_variable_genes, method = "euclidean")
+hclust_result <- hclust(distance_matrix, method = "ward.D2")
+options(repr.plot.width = 10, repr.plot.height = 10)
+par(cex = 0.5)  # Adjust the font size
+plot(hclust_result, main = "Hierarchical Clustering Dendrogram for Top 10 Variable Genes", hang = -1)
+
+#top 100 hclustering
+# Top 100
+top_100_variable_genes <- count_hugo[gene_ranking[1:100], ]
+distance_matrix <- dist(top_100_variable_genes, method = "euclidean")
+hclust_result <- hclust(distance_matrix, method = "ward.D2")
+options(repr.plot.width = 10, repr.plot.height = 10)
+par(cex = 0.5)  # Adjust the font size
+plot(hclust_result, main = "Hierarchical Clustering Dendrogram for Top 100 Variable Genes", hang = -1)
+
+# Top 1000 hclustering
+top_1000_variable_genes <- count_hugo[gene_ranking[1:1000], ]
+distance_matrix <- dist(top_1000_variable_genes, method = "euclidean")
+hclust_result <- hclust(distance_matrix, method = "ward.D2")
+options(repr.plot.width = 10, repr.plot.height = 10)
+par(cex = 0.5)  # Adjust the font size
+plot(hclust_result, main = "Hierarchical Clustering Dendrogram for Top 1000 Variable Genes", hang = -1)
+
+# Top 5000 hclustering
+top_5000_variable_genes <- count_hugo[gene_ranking[1:5000], ]
+distance_matrix <- dist(top_5000_variable_genes, method = "euclidean")
+hclust_result <- hclust(distance_matrix, method = "ward.D2")
+options(repr.plot.width = 10, repr.plot.height = 10)
+par(cex = 0.5)  # Adjust the font size
+plot(hclust_result, main = "Hierarchical Clustering Dendrogram for Top 5000 Variable Genes", hang = -1)
+
+# Top 10000
+top_10000_variable_genes <- count_hugo[gene_ranking[1:10000], ]
+distance_matrix <- dist(top_10000_variable_genes, method = "euclidean")
+hclust_result <- hclust(distance_matrix, method = "ward.D2")
+options(repr.plot.width = 10, repr.plot.height = 10)
+par(cex = 0.5)  # Adjust the font size
+plot(hclust_result, main = "Hierarchical Clustering Dendrogram for Top 10000 Variable Genes", hang = -1)
+
+install.packages("ggalluvial")
+library(ggplot2)
+library(ggalluvial)
+# Assuming you have cluster assignments for all gene sets
+cluster_assignments_5000 <- top_5000_variable_genes$cluster
+cluster_assignments_10 <- top_10_variable_genes$cluster
+cluster_assignments_100 <- top_100_variable_genes$cluster
+cluster_assignments_1000 <- top_1000_variable_genes$cluster
+cluster_assignments_10000 <- top_10000_variable_genes$cluster
+
+# Create a data frame
+alluvial_data <- data.frame(
+  GeneSet = factor(c("Top 5000", "Top 10", "Top 100", "Top 1000", "Top 10000")),
+  Cluster = factor(c(cluster_assignments_5000, cluster_assignments_10, cluster_assignments_100, cluster_assignments_1000, cluster_assignments_10000))
+)
+ggplot(alluvial_data, aes(axis1 = GeneSet, axis2 = Cluster)) +
+  geom_alluvium(aes(fill = Cluster)) +
+  geom_stratum() +
+  theme_void() +
+  labs(title = "Cluster Memberships for Different Gene Sets")
+
+
+
+#Question 2b - PAM Clustering 
+install.packages("cluster")
+
+# Load the required library
+library(cluster)
+library(ggplot2)  # For creating the scatter plot
+
+# Perform PAM clustering
+# Specify the number of clusters (k) in the 'k' parameter
+k <- 5  # Desired number of clusters
+pam_result <- pam(top_5000_variable_genes, k)
+
+# Create a data frame with cluster assignments
+data_with_clusters <- data.frame(top_5000_variable_genes, Cluster = pam_result$clustering)
+
+# Create a scatter plot using two principal components (you can adjust this for your data)
+pca <- prcomp(top_5000_variable_genes)
+data_with_clusters <- cbind(data_with_clusters, as.data.frame(pca$x[,1:2]))
+
+# Create a scatter plot
+ggplot(data_with_clusters, aes(x = PC1, y = PC2, color = factor(Cluster))) +
+  geom_point() +
+  labs(title = "PAM Clustering Results") +
+  theme_minimal()
+
+pam_result <- pam(top_10_variable_genes, k)
+
+# Create a data frame with cluster assignments
+data_with_clusters <- data.frame(top_10_variable_genes, Cluster = pam_result$clustering)
+
+# Create a scatter plot using two principal components (you can adjust this for your data)
+pca <- prcomp(top_10_variable_genes)
+data_with_clusters <- cbind(data_with_clusters, as.data.frame(pca$x[,1:2]))
+
+# Create a scatter plot
+ggplot(data_with_clusters, aes(x = PC1, y = PC2, color = factor(Cluster))) +
+  geom_point() +
+  labs(title = "PAM Clustering Results (Top 10)") +
+  theme_minimal()
+
+pam_result <- pam(top_100_variable_genes, k)
+
+# Create a data frame with cluster assignments
+data_with_clusters <- data.frame(top_100_variable_genes, Cluster = pam_result$clustering)
+
+# Create a scatter plot using two principal components (you can adjust this for your data)
+pca <- prcomp(top_100_variable_genes)
+data_with_clusters <- cbind(data_with_clusters, as.data.frame(pca$x[,1:2]))
+
+# Create a scatter plot
+ggplot(data_with_clusters, aes(x = PC1, y = PC2, color = factor(Cluster))) +
+  geom_point() +
+  labs(title = "PAM Clustering Results (Top 100)") +
+  theme_minimal()
+
+pam_result <- pam(top_1000_variable_genes, k)
+
+# Create a data frame with cluster assignments
+data_with_clusters <- data.frame(top_1000_variable_genes, Cluster = pam_result$clustering)
+
+# Create a scatter plot using two principal components (you can adjust this for your data)
+pca <- prcomp(top_1000_variable_genes)
+data_with_clusters <- cbind(data_with_clusters, as.data.frame(pca$x[,1:2]))
+
+# Create a scatter plot
+ggplot(data_with_clusters, aes(x = PC1, y = PC2, color = factor(Cluster))) +
+  geom_point() +
+  labs(title = "PAM Clustering Results (Top 1000)") +
+  theme_minimal()
+
+pam_result <- pam(top_10000_variable_genes, k)
+
+# Create a data frame with cluster assignments
+data_with_clusters <- data.frame(top_10000_variable_genes, Cluster = pam_result$clustering)
+
+# Create a scatter plot using two principal components (you can adjust this for your data)
+pca <- prcomp(top_10000_variable_genes)
+data_with_clusters <- cbind(data_with_clusters, as.data.frame(pca$x[,1:2]))
+
+# Create a scatter plot
+ggplot(data_with_clusters, aes(x = PC1, y = PC2, color = factor(Cluster))) +
+  geom_point() +
+  labs(title = "PAM Clustering Results (Top 10000)") +
+  theme_minimal()
+
+
+# Print the clustering results
+#print(pam_result)
+
+# To access cluster assignments, you can use:
+#cluster_assignments <- pam_result$clustering
+
+# Print the clustering results
+#print(pam_result)
+
+# To access cluster assignments, you can use:
+
+# Load libraries
+library(stats)
+library(ggplot2)
+
+# Specify the number of clusters (you can change this value)
+num_clusters <- 3
+
+# Perform K-means clustering on top_1000_variable_genes
+kmeans_result <- kmeans(top_1000_variable_genes, centers = num_clusters)
+
+# Add cluster assignments to your data
+top_1000_variable_genes$cluster <- kmeans_result$cluster
+
+# Create a cluster plot for top_1000_variable_genes
+pca_result <- prcomp(top_1000_variable_genes[, -ncol(top_1000_variable_genes)], scale. = TRUE)
+
+# Create a data frame with the PCA results and cluster assignments
+pca_data <- data.frame(PC1 = pca_result$x[, 1], PC2 = pca_result$x[, 2], Cluster = top_1000_variable_genes$cluster)
+
+# Plot the data for top_1000_variable_genes
+ggplot(data = pca_data, aes(x = PC1, y = PC2, color = factor(Cluster))) +
+  geom_point() +
+  labs(title = "K-means Clustering (Top 1000)", x = "PC1", y = "PC2") +
+  scale_color_discrete(name = "Cluster")
+#cluster_assignments <- pam_result$clustering
+
+
+
+# Specify the number of clusters (you can change this value)
+num_clusters <- 3
+
+# Perform K-means clustering on top_10000_variable_genes
+kmeans_result <- kmeans(top_10000_variable_genes, centers = num_clusters)
+
+# Add cluster assignments to your data
+top_10000_variable_genes$cluster <- kmeans_result$cluster
+
+# Create a cluster plot for top_10000_variable_genes
+pca_result <- prcomp(top_10000_variable_genes[, -ncol(top_10000_variable_genes)], scale. = TRUE)
+
+# Create a data frame with the PCA results and cluster assignments
+pca_data <- data.frame(PC1 = pca_result$x[, 1], PC2 = pca_result$x[, 2], Cluster = top_10000_variable_genes$cluster)
+
+# Plot the data for top_10000_variable_genes
+ggplot(data = pca_data, aes(x = PC1, y = PC2, color = factor(Cluster))) +
+  geom_point() +
+  labs(title = "K-means Clustering (Top 10000)", x = "PC1", y = "PC2") +
+  scale_color_discrete(name = "Cluster")
+
+
+#CCP clustering 
+BiocManager::install("ConsensusClusterPlus")
+mads <- apply(data,1,mad)
+data<-data[rev(order(mads))[1:5000],]
+library(ConsensusClusterPlus)
+title <- tempdir()
+results <- ConsensusClusterPlus(data, maxK=10, reps=50, pItem=0.8, pFeature=1, title = title, distance="pearson", seed=1262118388.71279, plot="png")
+
+library(ConsensusClusterPlus)
+
+mads <- apply(data, 1, mad)
+top_5000_genes <- data[rev(order(mads))[1:5000], ]
+distance_matrix <- dist(top_5000_genes, method = "euclidean")
+hclust_result <- hclust(distance_matrix, method = "ward.D2")
+#end
+
+# Assuming you have already calculated the 'mads' and 'data' variables
+
+# Select the top 10 genes based on MAD
+top_10_genes <- data[rev(order(mads))[1:10], ]
+title <- tempdir()
+results <- ConsensusClusterPlus(top_10_genes, maxK = 10, reps = 50, pItem = 0.8, pFeature = 1, title = title, distance = "pearson", seed = 1262118388.71279, plot = "png")
+
+
+top_100_genes <- data[rev(order(mads))[1:100], ]
+title <- tempdir()
+results <- ConsensusClusterPlus(top_100_genes, maxK = 10, reps = 50, pItem = 0.8, pFeature = 1, title = title, distance = "pearson", seed = 1262118388.71279, plot = "png")
+
+# Select the top 1000 genes based on MAD
+top_1000_genes <- data[rev(order(mads))[1:1000], ]
+title <- tempdir()
+results <- ConsensusClusterPlus(top_1000_genes, maxK = 10, reps = 50, pItem = 0.8, pFeature = 1, title = title, distance = "pearson", seed = 1262118388.71279, plot = "png")
+
+
+top_5000_genes <- data[rev(order(mads))[1:5000], ]
+title <- tempdir()
+results <- ConsensusClusterPlus(top_5000_genes, maxK = 10, reps = 50, pItem = 0.8, pFeature = 1, title = title, distance = "pearson", seed = 1262118388.71279, plot = "png")
+
+# Select the top 10000 genes based on MAD
+top_10000_genes <- data[rev(order(mads))[1:10000], ]
+title <- tempdir()
+results <- ConsensusClusterPlus(top_10000_genes, maxK = 10, reps = 50, pItem = 0.8, pFeature = 1, title = title, distance = "pearson", seed = 1262118388.71279, plot = "png")
+
+# 2e ii
+#K MEANS
+install.packages("ggalluvial")
+library(ggplot2)
+library(ggalluvial)
+# Assuming you have cluster assignments for all gene sets
+cluster_assignments_5000 <- top_5000_variable_genes$cluster
+cluster_assignments_10 <- top_10_variable_genes$cluster
+cluster_assignments_100 <- top_100_variable_genes$cluster
+cluster_assignments_1000 <- top_1000_variable_genes$cluster
+cluster_assignments_10000 <- top_10000_variable_genes$cluster
+
+# Create a data frame
+alluvial_data <- data.frame(
+  GeneSet = factor(c("Top 5000", "Top 10", "Top 100", "Top 1000", "Top 10000")),
+  Cluster = factor(c(cluster_assignments_5000, cluster_assignments_10, cluster_assignments_100, cluster_assignments_1000, cluster_assignments_10000))
+)
+ggplot(alluvial_data, aes(axis1 = GeneSet, axis2 = Cluster)) +
+  geom_alluvium(aes(fill = Cluster)) +
+  geom_stratum() +
+  theme_void() +
+  labs(title = "Cluster Memberships for Different Gene Sets")
+########################
+
+# Load the required libraries
+library(cluster)
+library(ggplot2)
+library(ggalluvial)
+
+# Function to perform PAM clustering and get cluster assignments
+perform_pam_clustering <- function(data, k) {
+  pam_result <- pam(data, k)
+  return(pam_result$clustering)
+}
+
+# Define the number of clusters (k)
+k <- 5  # Desired number of clusters
+
+# Perform PAM clustering and get cluster assignments for different gene sets
+cluster_assignments_5000 <- perform_pam_clustering(top_5000_variable_genes, k)
+cluster_assignments_10 <- perform_pam_clustering(top_10_variable_genes, k)
+cluster_assignments_100 <- perform_pam_clustering(top_100_variable_genes, k)
+cluster_assignments_1000 <- perform_pam_clustering(top_1000_variable_genes, k)
+cluster_assignments_10000 <- perform_pam_clustering(top_10000_variable_genes, k)
+
+# Create a data frame with cluster assignments
+alluvial_data <- data.frame(
+  GeneSet = factor(c("Top 5000", "Top 10", "Top 100", "Top 1000", "Top 10000")),
+  Cluster = factor(c(cluster_assignments_5000, cluster_assignments_10, cluster_assignments_100, cluster_assignments_1000, cluster_assignments_10000))
+)
+
+# Create the alluvial diagram
+ggplot(alluvial_data, aes(axis1 = GeneSet, axis2 = Cluster)) +
+  geom_alluvium(aes(fill = Cluster)) +
+  geom_stratum() +
+  labs(title = "Cluster Memberships for Different Gene Sets") +
+  theme_void()
+
+
+
+# Install and load the required packages
+install.packages("ggalluvial")
+library(ggplot2)
+library(ggalluvial)
+
+# Assuming you have cluster assignments for all gene sets
+cluster_assignments_5000 <- cutree(hclust_result_5000, k = 5)  # Adjust 'k' based on your clustering setup
+cluster_assignments_10 <- cutree(hclust_result_10, k = 5)
+cluster_assignments_100 <- cutree(hclust_result_100, k = 5)
+cluster_assignments_1000 <- cutree(hclust_result_1000, k = 5)
+cluster_assignments_10000 <- cutree(hclust_result_10000, k = 5)
+
+# Create a data frame
+alluvial_data <- data.frame(
+  GeneSet = factor(c("Top 5000", "Top 10", "Top 100", "Top 1000", "Top 10000")),
+  Cluster = factor(c(cluster_assignments_5000, cluster_assignments_10, cluster_assignments_100, cluster_assignments_1000, cluster_assignments_10000))
+)
+
+# Create the alluvial diagram
+ggplot(alluvial_data, aes(axis1 = GeneSet, axis2 = Cluster)) +
+  geom_alluvium(aes(fill = Cluster)) +
+  geom_stratum() +
+  theme_void() +
+  labs(title = "Cluster Memberships for Different Gene Sets")
+
+# Assuming you have the CCP cluster assignments for different gene sets
+# Replace these with the actual cluster assignments for CCP
+ccp_cluster_assignments_5000 <- ccp_clusterList
+ccp_cluster_assignments_10 <- ccp_clusterList_10
+ccp_cluster_assignments_100 <- ccp_clusterList_100
+ccp_cluster_assignments_1000 <- ccp_clusterList_1000
+ccp_cluster_assignments_10000 <- ccp_clusterList_10000
+
+# Create a data frame for the alluvial diagram
+alluvial_data <- data.frame(
+  GeneSet = factor(c("Top 5000", "Top 10", "Top 100", "Top 1000", "Top 10000")),
+  Cluster = factor(c(ccp_cluster_assignments_5000, ccp_cluster_assignments_10, ccp_cluster_assignments_100, ccp_cluster_assignments_1000, ccp_cluster_assignments_10000))
+)
+
+# Load ggplot2 and ggalluvial
+library(ggplot2)
+library(ggalluvial)
+
+# Create the alluvial diagram
+plot <- ggplot(alluvial_data, aes(axis1 = GeneSet, axis2 = Cluster)) +
+  geom_alluvium(aes(fill = Cluster)) +
+  geom_stratum() +
+  labs(title = "Cluster Memberships for Different Gene Sets")
+
+# Save the plot to a file
+ggsave("ccp_alluvial_diagram.png", plot)
+
+
+
+
+
+
+library(ComplexHeatmap)
+
+# Create a matrix for the heatmap
+heatmap_matrix <- data_5000
+
+# Create a color scale
+col_fun <- colorRamp2(c(-2, 0, 2), c("blue", "white", "red"))
+
+# Generate the heatmap without row/column dendrograms
+heatmap <- Heatmap(
+  heatmap_matrix,
+  col = col_fun,
+  cluster_rows = FALSE,
+  cluster_columns = FALSE,
+  rect_gp = gpar(col = "black"),
+  row_names_gp = gpar(fontsize = 10),
+  show_column_names = FALSE,
+  show_row_names = TRUE
+)
+
+# Add row dendrogram
+row_dend <- Heatmap(
+  heatmap_matrix,
+  cluster_rows = TRUE,
+  cluster_columns = FALSE,
+  column_title = "Samples",
+  rect_gp = gpar(col = "black"),
+  show_column_names = FALSE,
+  show_row_names = TRUE
+)
+
+# Add column dendrogram
+column_dend <- Heatmap(
+  heatmap_matrix,
+  cluster_rows = FALSE,
+  cluster_columns = TRUE,
+  column_title = "Samples",
+  rect_gp = gpar(col = "black"),
+  show_column_names = FALSE,
+  show_row_names = TRUE
+)
+
+# Create a graphical device (e.g., PDF) to display the heatmap
+pdf("complex_heatmap.pdf", width = 10, height = 10)
+
+# Arrange the heatmap, row dendrogram, and column dendrogram side by side
+ht_list <- HeatmapList(heatmap, row_dend, column_dend, layout = "column")
+
+# Draw the heatmap
+draw(ht_list)
+
+# Close the PDF device
+dev.off()
+
+
+
+library(ComplexHeatmap)
+library(circlize)
+library(RColorBrewer)
+
+# Convert data to a matrix
+top_5000_matrix <- data[rev(order(mads))[1:5000], ]
+colnames(top_5000_matrix) <- NULL
+
+# Define color palettes
+cols_10 <- brewer.pal(10, "Paired")
+cols_condition <- brewer.pal(3, "Set1")[1:2]
+cols_2 <- brewer.pal(3, "Set2")[1:2]
+
+# Define names for the color palettes
+names(cols_condition) <- c("healthy", "ast")
+names(cols_10) <- as.character(1:10)
+names(cols_2) <- as.character(1:2)
+
+# Create row annotations
+ha <- rowAnnotation(
+  Condition = as.data.frame(metadata) %>% select(c("Patient_id", "condition")) %>% tibble::deframe(),
+  PAM = as.character(fivek_pamResults$clustering),
+  KMeans = as.character(kclustInfo %>% select(c("samples", "5000")) %>% tibble::deframe()),
+  CCP = as.character(results_5000[[10]]$consensusClass),
+  col = list(Condition = cols_condition, PAM = cols_2, KMeans = cols_2, CCP = cols_10),
+  show_legend = c(KMeans = FALSE),
+  annotation_legend_param = list(PAM = list(title = "k = 2"), CCP = list(title = "k = 10", labels = as.character(1:10))
+  )
+)
+
+# Create the heatmap
+ht <- Heatmap(
+  top_5000_matrix,
+  name = "Expression",
+  column_title = "Top 5000 Genes by Variance",
+  column_title_side = "bottom",
+  right_annotation = ha
+)
+
+# Draw the heatmap
+draw(ht)
+
+
