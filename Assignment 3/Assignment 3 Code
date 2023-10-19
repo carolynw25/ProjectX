@@ -119,14 +119,19 @@ gene_median_ranges <- apply(log_counts, 2, function(x) diff(range(x)))
 density_plot <- density(gene_median_ranges)
 plot(density_plot, main = "Density Plot of Per-Gene Median Expression Ranges")
 
-
+######################################################################################################
+#
 # Assignment 3
 # Question 2a
 
+# Calculate gene variability
 gene_variability <- apply(count_hugo, 1, var)
+# Rank genes by variability in descending order
 gene_ranking <- order(gene_variability, decreasing = TRUE)
 
+# Select the top 5000 variable genes
 top_5000_variable_genes <- count_hugo[gene_ranking[1:5000], ]
+
 top_10_variable_genes <- count_hugo[gene_ranking[1:10], ]
 top_100_variable_genes <- count_hugo[gene_ranking[1:100], ]
 top_1000_variable_genes <- count_hugo[gene_ranking[1:1000], ]
@@ -259,8 +264,12 @@ plot(hclust_result_10, main = "Hierarchical Clustering Dendrogram for Top 10 Var
 top_100_variable_genes <- count_hugo[gene_ranking[1:100], ]
 distance_matrix <- dist(top_100_variable_genes, method = "euclidean")
 hclust_resul_100t <- hclust(distance_matrix, method = "ward.D2")
+
 options(repr.plot.width = 10, repr.plot.height = 10)
+# Plot the rotated hierarchical clustering dendrogram with smaller font size
 par(cex = 0.5)  # Adjust the font size
+
+# Plot the dendrogram
 plot(hclust_result_100, main = "Hierarchical Clustering Dendrogram for Top 100 Variable Genes", hang = -1)
 
 # Top 1000 hclustering
@@ -498,3 +507,23 @@ plot <- ggplot(alluvial_data, aes(axis1 = GeneSet, axis2 = Cluster)) +
 # Save the alluvial diagram to an image (e.g., PNG)
 ggsave("alluvial_diagram.png", plot, width = 10, height = 6, units = "in")
 
+######################################################################################################
+#Question 3 - Heatmaps and Dendrograms
+  # Create heatmap
+column_ha <- HeatmapAnnotation(sample = metadata$mutation_status, CCP = ccp_clusterList, hclust = hclust_clusterList, k_means = k_clusterList, PAM = pam_clusterList)
+Heatmap(data_5000, top_annotation = column_ha, column_names_gp = grid::gpar(fontsize = 1), row_names_gp = grid::gpar(fontsize = 1))
+
+
+######################################################################################################
+#Question 4a - Statistics
+  # Initialize table
+chisqTable <- data.frame(matrix(nrow = 4, ncol = 2))
+colnames(chisqTable) <- c("Unadjusted", "Adjusted")
+rownames(chisqTable) <- c("CCP", "hclust", "k-means", "PAM")
+  # Run unadjusted tests
+chisqTable[1,1] <- chisq.test(metadata$mutation_status, ccp_clusterList)$p.value
+chisqTable[2,1] <- chisq.test(metadata$mutation_status, hclust_clusterList)$p.value
+chisqTable[3,1] <- chisq.test(metadata$mutation_status, k_clusterList)$p.value
+chisqTable[4,1] <- chisq.test(metadata$mutation_status, pam_clusterList)$p.value
+  # Calculate adjusted p values
+chisqTable[,2] <- p.adjust(chisqTable[,1])
