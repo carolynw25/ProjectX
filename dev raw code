@@ -49,6 +49,7 @@ logistic_weights <- coef(logistic_model)
 # Random forest
 rf_weights <- importance(rf_model)
 # Naive bayes
+predicted_probabilities <- predict(nb_model, newdata = data_5000, type = "prob")
 # Part 2g
 # Prepare data
 data_10 <- data[rev(order(mads))[1:10],]
