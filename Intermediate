@@ -1,0 +1,135 @@
+# Part 1
+# Load Data
+data_dir <- file.path("data", "ERP109789")
+data_file <- file.path(data_dir, "ERP109789.tsv")
+file.exists(data_file)
+data <- readr::read_tsv(data_file)
+# Load Metadata
+metadata_file <- file.path(data_dir, "metadata_ERP109789.tsv")
+file.exists(metadata_file)
+metadata <- readr::read_tsv(metadata_file)
+# Part 2a
+geneNames <- data$Gene
+data$Gene <- NULL
+rownames(data) <- geneNames
+data <- data.matrix(data)
+mads <- apply(data,1,mad)
+data_5000<-data[rev(order(mads))[1:5000],]
+# Part 2b
+install.packages("magrittr")
+install.packages("dplyr")
+install.packages("caret")
+install.packages("e1071")
+install.packages("randomForest")
+install.packages("class")
+install.packages("naivebayes")
+library(magrittr)
+library(dplyr)
+library(caret)
+library(e1071)
+library(randomForest)
+library(class)
+library(naivebayes)
+# Update metadata
+metadata <- metadata %>%
+  dplyr::mutate(mutation_status = dplyr::case_when(
+    stringr::str_detect(stimulus, "brain-derived neurotrophic factor") ~ 1,
+    stringr::str_detect(stimulus, "TrkB agonist antibody ZEB85") ~ 1,
+    stringr::str_detect(stimulus, "neurotrophin-4") ~ 1,
+    stringr::str_detect(stimulus, "none") ~ -1
+  ))
+# Add target to data
+dvw <- data.frame(t(data_5000), target = as.factor(metadata$mutation_status))
+# Support vector machine
+svm_model <- svm(target ~ ., data = dvw)
+# Logistic regression (potentially NOT WORKING)
+logistic_model <- glm(formula = target ~ ., family = binomial, data = dvw)
+# Random forest
+rf_control <- rfeControl(functions = rfFuncs, method = "repeatedcv")
+rf_model <- rfe(x = dvw[, -ncol(dvw)], y = dvw$target, rfeControl = rf_control)
+rf_genes <- predictors(rf_model)
+# K nearest neighbours (weird output)
+knn_model <- knn(train = dvw[1:95,-ncol(dvw)], cl = dvw$target[1:95], test = dvw[96:190,-ncol(dvw)], k = 5)
+# Naive bayes
+nb_model <- naive_bayes(target ~ ., data = dvw)
+# Part 2f (NOT DONE)
+# Support vector machine
+svm_weights <- apply(svm_model$SV, 2, function(x) sum(abs(x)))
+# Logistic regression
+logistic_weights <- coef(logistic_model)
+# Random forest
+rf_weights <- importance(rf_model)
+# K nearest neighbours
+# Naive bayes
+# Part 2g
+# Prepare data
+data_10 <- data[rev(order(mads))[1:10],]
+data_100 <- data[rev(order(mads))[1:100],]
+data_1000 <- data[rev(order(mads))[1:1000],]
+data_10000 <- data[rev(order(mads))[1:10000],]
+# Add target to data
+dvw_10 <- data.frame(t(data_10), target = as.factor(metadata$mutation_status))
+dvw_100 <- data.frame(t(data_100), target = as.factor(metadata$mutation_status))
+dvw_1000 <- data.frame(t(data_1000), target = as.factor(metadata$mutation_status))
+dvw_10000 <- data.frame(t(data_10000), target = as.factor(metadata$mutation_status))
+# Support vector machine
+svm_model_10 <- svm(target ~ ., data = dvw_10)
+svm_model_100 <- svm(target ~ ., data = dvw_100)
+svm_model_1000 <- svm(target ~ ., data = dvw_1000)
+svm_model_10000 <- svm(target ~ ., data = dvw_10000)
+# Logistic regression (potentially NOT WORKING)
+logistic_model_10 <- glm(formula = target ~ ., family = binomial, data = dvw_10)
+logistic_model_100 <- glm(formula = target ~ ., family = binomial, data = dvw_100)
+logistic_model_1000 <- glm(formula = target ~ ., family = binomial, data = dvw_1000)
+logistic_model_10000 <- glm(formula = target ~ ., family = binomial, data = dvw_10000)
+# Random forest
+rf_model_10 <- randomForest(target ~ ., data = dvw_10)
+rf_model_100 <- randomForest(target ~ ., data = dvw_100)
+rf_model_1000 <- randomForest(target ~ ., data = dvw_1000)
+rf_model_10000 <- randomForest(target ~ ., data = dvw_10000)
+# K nearest neighbours (weird output)
+knn_model_10 <- knn(train = dvw_10[1:95,-ncol(dvw_10)], cl = dvw_10$target[1:95], test = dvw_10[96:190,-ncol(dvw_10)], k = 5)
+knn_model_100 <- knn(train = dvw_100[1:95,-ncol(dvw_100)], cl = dvw_100$target[1:95], test = dvw_100[96:190,-ncol(dvw_100)], k = 5)
+knn_model_1000 <- knn(train = dvw_1000[1:95,-ncol(dvw_1000)], cl = dvw_1000$target[1:95], test = dvw_1000[96:190,-ncol(dvw_1000)], k = 5)
+knn_model_10000 <- knn(train = dvw_10000[1:95,-ncol(dvw_10000)], cl = dvw_10000$target[1:95], test = dvw_10000[96:190,-ncol(dvw_10000)], k = 5)
+# Naive bayes
+nb_model_10 <- naive_bayes(target ~ ., data = dvw_10)
+nb_model_100 <- naive_bayes(target ~ ., data = dvw_100)
+nb_model_1000 <- naive_bayes(target ~ ., data = dvw_1000)
+nb_model_10000 <- naive_bayes(target ~ ., data = dvw_10000)
+
+#Heatmap and Dendrograms
+
+# Install and load the necessary packages
+install.packages("gplots")
+library(gplots)
+install.packages("pheatmap")
+library(pheatmap)
+library(ComplexHeatmap)
+
+metadata <- metadata %>%
+  dplyr::mutate(mutation_status = dplyr::case_when(
+    stringr::str_detect(stimulus, "brain-derived neurotrophic factor") ~ "treated",
+    stringr::str_detect(stimulus, "TrkB agonist antibody ZEB85") ~ "treated",
+    stringr::str_detect(stimulus, "neurotrophin-4") ~ "treated",
+    stringr::str_detect(stimulus, "none") ~ "reference"
+  ))
+
+column_ha <- HeatmapAnnotation(sample = rownames(metadata), TreatedType = metadata$mutation_status)
+Heatmap(data_5000[rf_genes,], top_annotation = column_ha, column_names_gp = grid::gpar(fontsize = 1), row_names_gp = grid::gpar(fontsize = 1))
+
+
+# Create a heatmap using pheatmap
+pheatmap(
+  selected_genes,
+  color = colorRampPalette(c("blue", "white", "red"))(50), # Define your color palette
+  main = "Heatmap of Predictive Genes",
+  cluster_rows = TRUE, # Include row dendrogram
+  cluster_cols = TRUE, # Include column dendrogram
+  annotation_col = annotation_data, # Add sample groups as annotation
+  legend = TRUE, # Show color legend
+  angle_col = 45, # Angle for column text
+  fontsize_col = 8, # Font size for column text
+  fontsize_row = 8, # Font size for row text
+  filename = "heatmap.png" # Save the heatmap to a file (optional)
+)
