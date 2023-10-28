@@ -16,10 +16,16 @@ data <- data.matrix(data)
 mads <- apply(data,1,mad)
 data_5000<-data[rev(order(mads))[1:5000],]
 # Part 2b
+install.packages("magrittr")
+install.packages("dplyr")
+install.packages("caret")
+install.packages("randomForest")
+install.packages("class")
+install.packages("naivebayes")
+
 library(magrittr)
 library(dplyr)
 library(caret)
-library(e1071)
 library(randomForest)
 library(class)
 library(naivebayes)
@@ -39,8 +45,6 @@ svm_model <- svm(target ~ ., data = dvw)
 logistic_model <- glm(formula = target ~ ., family = binomial, data = dvw)
   # Random forest
 rf_model <- randomForest(target ~ ., data = dvw)
-  # K nearest neighbours (weird output)
-knn_model <- knn(train = dvw[1:95,-ncol(dvw)], cl = dvw$target[1:95], test = dvw[96:190,-ncol(dvw)], k = 5)
   # Naive bayes
 nb_model <- naive_bayes(target ~ ., data = dvw)
 # Part 2f (NOT DONE)
@@ -50,7 +54,6 @@ svm_weights <- apply(svm_model$SV, 2, function(x) sum(abs(x)))
 logistic_weights <- coef(logistic_model)
   # Random forest
 rf_weights <- importance(rf_model)
-  # K nearest neighbours
   # Naive bayes
 # Part 2g
   # Prepare data
@@ -78,11 +81,6 @@ rf_model_10 <- randomForest(target ~ ., data = dvw_10)
 rf_model_100 <- randomForest(target ~ ., data = dvw_100)
 rf_model_1000 <- randomForest(target ~ ., data = dvw_1000)
 rf_model_10000 <- randomForest(target ~ ., data = dvw_10000)
-  # K nearest neighbours (weird output)
-knn_model_10 <- knn(train = dvw_10[1:95,-ncol(dvw_10)], cl = dvw_10$target[1:95], test = dvw_10[96:190,-ncol(dvw_10)], k = 5)
-knn_model_100 <- knn(train = dvw_100[1:95,-ncol(dvw_100)], cl = dvw_100$target[1:95], test = dvw_100[96:190,-ncol(dvw_100)], k = 5)
-knn_model_1000 <- knn(train = dvw_1000[1:95,-ncol(dvw_1000)], cl = dvw_1000$target[1:95], test = dvw_1000[96:190,-ncol(dvw_1000)], k = 5)
-knn_model_10000 <- knn(train = dvw_10000[1:95,-ncol(dvw_10000)], cl = dvw_10000$target[1:95], test = dvw_10000[96:190,-ncol(dvw_10000)], k = 5)
   # Naive bayes
 nb_model_10 <- naive_bayes(target ~ ., data = dvw_10)
 nb_model_100 <- naive_bayes(target ~ ., data = dvw_100)
