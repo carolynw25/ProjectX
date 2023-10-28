@@ -1,10 +1,10 @@
 # Part 1
-  # Load Data
+# Load Data
 data_dir <- file.path("data", "ERP109789")
 data_file <- file.path(data_dir, "ERP109789.tsv")
 file.exists(data_file)
 data <- readr::read_tsv(data_file)
-  # Load Metadata
+# Load Metadata
 metadata_file <- file.path(data_dir, "metadata_ERP109789.tsv")
 file.exists(metadata_file)
 metadata <- readr::read_tsv(metadata_file)
@@ -16,20 +16,14 @@ data <- data.matrix(data)
 mads <- apply(data,1,mad)
 data_5000<-data[rev(order(mads))[1:5000],]
 # Part 2b
-install.packages("magrittr")
-install.packages("dplyr")
-install.packages("caret")
-install.packages("randomForest")
-install.packages("class")
-install.packages("naivebayes")
-
 library(magrittr)
 library(dplyr)
 library(caret)
+library(e1071)
 library(randomForest)
 library(class)
 library(naivebayes)
-  # Update metadata
+# Update metadata
 metadata <- metadata %>%
   dplyr::mutate(mutation_status = dplyr::case_when(
     stringr::str_detect(stimulus, "brain-derived neurotrophic factor") ~ 1,
@@ -37,52 +31,53 @@ metadata <- metadata %>%
     stringr::str_detect(stimulus, "neurotrophin-4") ~ 1,
     stringr::str_detect(stimulus, "none") ~ -1
   ))
-  # Add target to data
+# Add target to data
 dvw <- data.frame(t(data_5000), target = as.factor(metadata$mutation_status))
-  # Support vector machine
+# Support vector machine
 svm_model <- svm(target ~ ., data = dvw)
-  # Logistic regression (potentially NOT WORKING)
+# Logistic regression (potentially NOT WORKING)
 logistic_model <- glm(formula = target ~ ., family = binomial, data = dvw)
-  # Random forest
+# Random forest
 rf_model <- randomForest(target ~ ., data = dvw)
-  # Naive bayes
+# Naive bayes
 nb_model <- naive_bayes(target ~ ., data = dvw)
 # Part 2f (NOT DONE)
-  # Support vector machine
+# Support vector machine
 svm_weights <- apply(svm_model$SV, 2, function(x) sum(abs(x)))
-  # Logistic regression
+# Logistic regression
 logistic_weights <- coef(logistic_model)
-  # Random forest
+# Random forest
 rf_weights <- importance(rf_model)
-  # Naive bayes
+# Naive bayes
 # Part 2g
-  # Prepare data
+# Prepare data
 data_10 <- data[rev(order(mads))[1:10],]
 data_100 <- data[rev(order(mads))[1:100],]
 data_1000 <- data[rev(order(mads))[1:1000],]
 data_10000 <- data[rev(order(mads))[1:10000],]
-  # Add target to data
+# Add target to data
 dvw_10 <- data.frame(t(data_10), target = as.factor(metadata$mutation_status))
 dvw_100 <- data.frame(t(data_100), target = as.factor(metadata$mutation_status))
 dvw_1000 <- data.frame(t(data_1000), target = as.factor(metadata$mutation_status))
 dvw_10000 <- data.frame(t(data_10000), target = as.factor(metadata$mutation_status))
-  # Support vector machine
+# Support vector machine
 svm_model_10 <- svm(target ~ ., data = dvw_10)
 svm_model_100 <- svm(target ~ ., data = dvw_100)
 svm_model_1000 <- svm(target ~ ., data = dvw_1000)
 svm_model_10000 <- svm(target ~ ., data = dvw_10000)
-  # Logistic regression (potentially NOT WORKING)
+# Logistic regression (potentially NOT WORKING)
 logistic_model_10 <- glm(formula = target ~ ., family = binomial, data = dvw_10)
 logistic_model_100 <- glm(formula = target ~ ., family = binomial, data = dvw_100)
 logistic_model_1000 <- glm(formula = target ~ ., family = binomial, data = dvw_1000)
 logistic_model_10000 <- glm(formula = target ~ ., family = binomial, data = dvw_10000)
-  # Random forest
+# Random forest
 rf_model_10 <- randomForest(target ~ ., data = dvw_10)
 rf_model_100 <- randomForest(target ~ ., data = dvw_100)
 rf_model_1000 <- randomForest(target ~ ., data = dvw_1000)
 rf_model_10000 <- randomForest(target ~ ., data = dvw_10000)
-  # Naive bayes
+# Naive bayes
 nb_model_10 <- naive_bayes(target ~ ., data = dvw_10)
 nb_model_100 <- naive_bayes(target ~ ., data = dvw_100)
 nb_model_1000 <- naive_bayes(target ~ ., data = dvw_1000)
 nb_model_10000 <- naive_bayes(target ~ ., data = dvw_10000)
+
