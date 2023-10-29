@@ -1,10 +1,10 @@
 # Part 1
-# Load Data
+  # Load Data
 data_dir <- file.path("data", "ERP109789")
 data_file <- file.path(data_dir, "ERP109789.tsv")
 file.exists(data_file)
 data <- readr::read_tsv(data_file)
-# Load Metadata
+  # Load Metadata
 metadata_file <- file.path(data_dir, "metadata_ERP109789.tsv")
 file.exists(metadata_file)
 metadata <- readr::read_tsv(metadata_file)
@@ -23,62 +23,72 @@ library(e1071)
 library(randomForest)
 library(class)
 library(naivebayes)
-# Update metadata
+library(klaR)
+  # Update metadata
 metadata <- metadata %>%
   dplyr::mutate(mutation_status = dplyr::case_when(
-    stringr::str_detect(stimulus, "brain-derived neurotrophic factor") ~ 1,
-    stringr::str_detect(stimulus, "TrkB agonist antibody ZEB85") ~ 1,
-    stringr::str_detect(stimulus, "neurotrophin-4") ~ 1,
-    stringr::str_detect(stimulus, "none") ~ -1
+    stringr::str_detect(stimulus, "brain-derived neurotrophic factor") ~ "treated",
+    stringr::str_detect(stimulus, "TrkB agonist antibody ZEB85") ~ "treated",
+    stringr::str_detect(stimulus, "neurotrophin-4") ~ "treated",
+    stringr::str_detect(stimulus, "none") ~ "reference"
   ))
-# Add target to data
+  # Add target to data
 dvw <- data.frame(t(data_5000), target = as.factor(metadata$mutation_status))
-# Support vector machine
-svm_model <- svm(target ~ ., data = dvw)
-# Logistic regression (potentially NOT WORKING)
-logistic_model <- glm(formula = target ~ ., family = binomial, data = dvw)
-# Random forest
-rf_model <- randomForest(target ~ ., data = dvw)
-# Naive bayes
-nb_model <- naive_bayes(target ~ ., data = dvw)
-# Part 2f (NOT DONE)
-# Support vector machine
-svm_weights <- apply(svm_model$SV, 2, function(x) sum(abs(x)))
-# Logistic regression
-logistic_weights <- coef(logistic_model)
-# Random forest
-rf_weights <- importance(rf_model)
-# Naive bayes
-predicted_probabilities <- predict(nb_model, newdata = data_5000, type = "prob")
+  # Support vector machine
+svm_control <-  rfeControl(functions = caretFuncs, method = "repeatedcv") 
+svm_model <- rfe(x = dvw[,-ncol(dvw)], y = dvw$target, rfeControl = svm_control, method = "svmRadial")
+  # K nearest neighbours
+knn_control <-  rfeControl(functions = caretFuncs, method = "repeatedcv") 
+knn_model <- rfe(x = dvw[,-ncol(dvw)], y = dvw$target, rfeControl = knn_control, method = "knn")
+  # Random forest
+rf_control <- rfeControl(functions = rfFuncs, method = "repeatedcv")
+rf_model <- rfe(x = dvw[,-ncol(dvw)], y = dvw$target, rfeControl = rf_control)
+  # Naive bayes
+nb_control <- rfeControl(functions = nbFuncs, method = "repeatedcv")
+nb_model <- rfe(x = dvw[,-ncol(dvw)], y = dvw$target, rfeControl = nb_control)
+# Part 2f
+  # Support vector machine
+svm_genes <- predictors(svm_model)
+  # K nearest neighbours
+knn_genes <- predictors(knn_model)
+  # Random forest
+rf_genes <- predictors(rf_model)
+  # Naive bayes
+nb_genes <- predictors(nb_model)
 # Part 2g
-# Prepare data
+  # Prepare data
 data_10 <- data[rev(order(mads))[1:10],]
 data_100 <- data[rev(order(mads))[1:100],]
 data_1000 <- data[rev(order(mads))[1:1000],]
 data_10000 <- data[rev(order(mads))[1:10000],]
-# Add target to data
+  # Add target to data
 dvw_10 <- data.frame(t(data_10), target = as.factor(metadata$mutation_status))
 dvw_100 <- data.frame(t(data_100), target = as.factor(metadata$mutation_status))
 dvw_1000 <- data.frame(t(data_1000), target = as.factor(metadata$mutation_status))
 dvw_10000 <- data.frame(t(data_10000), target = as.factor(metadata$mutation_status))
-# Support vector machine
-svm_model_10 <- svm(target ~ ., data = dvw_10)
-svm_model_100 <- svm(target ~ ., data = dvw_100)
-svm_model_1000 <- svm(target ~ ., data = dvw_1000)
-svm_model_10000 <- svm(target ~ ., data = dvw_10000)
-# Logistic regression (potentially NOT WORKING)
-logistic_model_10 <- glm(formula = target ~ ., family = binomial, data = dvw_10)
-logistic_model_100 <- glm(formula = target ~ ., family = binomial, data = dvw_100)
-logistic_model_1000 <- glm(formula = target ~ ., family = binomial, data = dvw_1000)
-logistic_model_10000 <- glm(formula = target ~ ., family = binomial, data = dvw_10000)
-# Random forest
-rf_model_10 <- randomForest(target ~ ., data = dvw_10)
-rf_model_100 <- randomForest(target ~ ., data = dvw_100)
-rf_model_1000 <- randomForest(target ~ ., data = dvw_1000)
-rf_model_10000 <- randomForest(target ~ ., data = dvw_10000)
-# Naive bayes
-nb_model_10 <- naive_bayes(target ~ ., data = dvw_10)
-nb_model_100 <- naive_bayes(target ~ ., data = dvw_100)
-nb_model_1000 <- naive_bayes(target ~ ., data = dvw_1000)
-nb_model_10000 <- naive_bayes(target ~ ., data = dvw_10000)
-
+  # Support vector machine
+predictors(rfe(x = dvw_10[,-ncol(dvw_10)], y = dvw$target, rfeControl = svm_control, method = "svmRadial"))
+predictors(rfe(x = dvw_100[,-ncol(dvw_100)], y = dvw$target, rfeControl = svm_control, method = "svmRadial"))
+predictors(rfe(x = dvw_1000[,-ncol(dvw_1000)], y = dvw$target, rfeControl = svm_control, method = "svmRadial"))
+predictors(rfe(x = dvw_10000[,-ncol(dvw_10000)], y = dvw$target, rfeControl = svm_control, method = "svmRadial"))
+  # K nearest neighbours
+predictors(rfe(x = dvw_10[,-ncol(dvw_10)], y = dvw$target, rfeControl = knn_control, method = "knn"))
+predictors(rfe(x = dvw_100[,-ncol(dvw_100)], y = dvw$target, rfeControl = knn_control, method = "knn"))
+predictors(rfe(x = dvw_1000[,-ncol(dvw_1000)], y = dvw$target, rfeControl = knn_control, method = "knn"))
+predictors(rfe(x = dvw_10000[,-ncol(dvw_10000)], y = dvw$target, rfeControl = knn_control, method = "knn"))
+  # Random forest
+predictors(rfe(x = dvw_10[,-ncol(dvw_10)], y = dvw$target, rfeControl = rf_control))
+predictors(rfe(x = dvw_100[,-ncol(dvw_100)], y = dvw$target, rfeControl = rf_control))
+predictors(rfe(x = dvw_1000[,-ncol(dvw_1000)], y = dvw$target, rfeControl = rf_control))
+predictors(rfe(x = dvw_10000[,-ncol(dvw_10000)], y = dvw$target, rfeControl = rf_control))
+  # Naive bayes
+predictors(rfe(x = dvw_10[,-ncol(dvw_10)], y = dvw$target, rfeControl = nb_control))
+predictors(rfe(x = dvw_100[,-ncol(dvw_100)], y = dvw$target, rfeControl = nb_control))
+predictors(rfe(x = dvw_1000[,-ncol(dvw_1000)], y = dvw$target, rfeControl = nb_control))
+predictors(rfe(x = dvw_10000[,-ncol(dvw_10000)], y = dvw$target, rfeControl = nb_control))
+# Part 3a
+  # Prepare annotations
+library(ComplexHeatmap)
+column_ha <- HeatmapAnnotation(TreatedType = metadata$mutation_status)
+  # Create heatmap
+Heatmap(data_5000[union(svm_genes, knn_genes, rf_genes, nb_genes),], top_annotation = column_ha, column_names_gp = grid::gpar(fontsize = 1), row_names_gp = grid::gpar(fontsize = 10))
