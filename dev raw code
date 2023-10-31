@@ -91,4 +91,4 @@ predictors(rfe(x = dvw_10000[,-ncol(dvw_10000)], y = dvw$target, rfeControl = nb
 library(ComplexHeatmap)
 column_ha <- HeatmapAnnotation(TreatedType = metadata$mutation_status)
   # Create heatmap
-Heatmap(data_5000[union(svm_genes, knn_genes, rf_genes, nb_genes),], top_annotation = column_ha, column_names_gp = grid::gpar(fontsize = 1), row_names_gp = grid::gpar(fontsize = 10))
+Heatmap(data_5000[union(union(svm_genes, knn_genes), union(rf_genes, nb_genes)),], top_annotation = column_ha, column_names_gp = grid::gpar(fontsize = 1), row_names_gp = grid::gpar(fontsize = 10))
