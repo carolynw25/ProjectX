@@ -8,6 +8,7 @@ data <- readr::read_tsv(data_file)
 metadata_file <- file.path(data_dir, "metadata_ERP109789.tsv")
 file.exists(metadata_file)
 metadata <- readr::read_tsv(metadata_file)
+
 # Part 2a
 geneNames <- data$Gene
 data$Gene <- NULL
@@ -15,6 +16,7 @@ rownames(data) <- geneNames
 data <- data.matrix(data)
 mads <- apply(data,1,mad)
 data_5000<-data[rev(order(mads))[1:5000],]
+
 # Part 2b
 library(magrittr)
 library(dplyr)
@@ -46,6 +48,7 @@ rf_model <- rfe(x = dvw[,-ncol(dvw)], y = dvw$target, rfeControl = rf_control)
   # Naive bayes
 nb_control <- rfeControl(functions = nbFuncs, method = "repeatedcv")
 nb_model <- rfe(x = dvw[,-ncol(dvw)], y = dvw$target, rfeControl = nb_control)
+
 # Part 2f
   # Support vector machine
 svm_genes <- predictors(svm_model)
@@ -55,7 +58,9 @@ knn_genes <- predictors(knn_model)
 rf_genes <- predictors(rf_model)
   # Naive bayes
 nb_genes <- predictors(nb_model)
+
 # Part 2g
+# Rerun each predictive method using different numbers of genes. Try 10, 100, 1000, and 10000 genes.
 library(pROC)
 training_indices <- createDataPartition(dvw$target, p = 0.8, list = FALSE)
   # Prepare data
@@ -120,6 +125,7 @@ auc(roc(response = dvw$target[-training_indices], predictor = as.numeric(predict
 auc(roc(response = dvw$target[-training_indices], predictor = as.numeric(predict(nb_model_100, dvw_100[-training_indices,-ncol(dvw_100)], type="response")$pred)))
 auc(roc(response = dvw$target[-training_indices], predictor = as.numeric(predict(nb_model_1000, dvw_1000[-training_indices,-ncol(dvw_1000)], type="response")$pred)))
 auc(roc(response = dvw$target[-training_indices], predictor = as.numeric(predict(nb_model_10000, dvw_10000[-training_indices,-ncol(dvw_10000)], type="response")$pred)))
+
 # Part 3a
   # Prepare annotations
 library(ComplexHeatmap)
